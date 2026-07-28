@@ -81,16 +81,16 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> _seedNoteColors() async {
     final colors = [
-      NoteColorValuesCompanion.insert(value: 0xFFFEF7E0, label: '暖黄'),
-      NoteColorValuesCompanion.insert(value: 0xFFE8F5E9, label: '淡绿'),
-      NoteColorValuesCompanion.insert(value: 0xFFE3F2FD, label: '淡蓝'),
-      NoteColorValuesCompanion.insert(value: 0xFFFCE4EC, label: '淡粉'),
-      NoteColorValuesCompanion.insert(value: 0xFFF3E5F5, label: '淡紫'),
-      NoteColorValuesCompanion.insert(value: 0xFFE0F7FA, label: '青'),
-      NoteColorValuesCompanion.insert(value: 0xFFFFF8E1, label: '淡橙'),
-      NoteColorValuesCompanion.insert(value: 0xFFEFEBE9, label: '淡棕'),
-      NoteColorValuesCompanion.insert(value: 0xFFE0E0E0, label: '灰色'),
-      NoteColorValuesCompanion.insert(value: 0xFFFFFFFF, label: '白色'),
+      NoteColorValuesCompanion(value: Value(0xFFFEF7E0), label: Value('暖黄')),
+      NoteColorValuesCompanion(value: Value(0xFFE8F5E9), label: Value('淡绿')),
+      NoteColorValuesCompanion(value: Value(0xFFE3F2FD), label: Value('淡蓝')),
+      NoteColorValuesCompanion(value: Value(0xFFFCE4EC), label: Value('淡粉')),
+      NoteColorValuesCompanion(value: Value(0xFFF3E5F5), label: Value('淡紫')),
+      NoteColorValuesCompanion(value: Value(0xFFE0F7FA), label: Value('青')),
+      NoteColorValuesCompanion(value: Value(0xFFFFF8E1), label: Value('淡橙')),
+      NoteColorValuesCompanion(value: Value(0xFFEFEBE9), label: Value('淡棕')),
+      NoteColorValuesCompanion(value: Value(0xFFE0E0E0), label: Value('灰色')),
+      NoteColorValuesCompanion(value: Value(0xFFFFFFFF), label: Value('白色')),
     ];
     await batch((b) => b.insertAll(noteColorValues, colors));
   }
