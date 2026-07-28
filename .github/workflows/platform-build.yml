@@ -125,6 +125,9 @@ jobs:
           flutter-version: '3.27.4'
           cache: true
 
+      - name: Install Ninja
+        run: choco install ninja
+
       - name: Create platform dirs
         run: flutter create . --project-name memo_app --org com.memo
 

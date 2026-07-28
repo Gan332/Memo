@@ -1,12 +1,11 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../state/providers/theme_provider.dart';
 import '../services/backup_service.dart';
+import '../services/platform_file.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -108,14 +107,12 @@ class SettingsScreen extends StatelessWidget {
     try {
       final service = BackupService();
       final json = await service.exportBackup();
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File(
-          '${directory.path}/memo_backup_${DateTime.now().millisecondsSinceEpoch}.json');
-      await file.writeAsString(json);
+      final filename = 'memo_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+      final path = await saveBackupToFile(json);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('备份已导出: ${file.path}')),
+          SnackBar(content: Text('备份已导出: $path')),
         );
       }
     } catch (e) {
@@ -136,8 +133,17 @@ class SettingsScreen extends StatelessWidget {
 
       if (result == null || result.files.isEmpty) return;
 
-      final file = File(result.files.first.path!);
-      final json = await file.readAsString();
+      final fileBytes = result.files.first.bytes;
+      final filePath = result.files.first.path;
+      String json;
+
+      if (kIsWeb) {
+        if (fileBytes == null) return;
+        json = String.fromCharCodes(fileBytes);
+      } else {
+        if (filePath == null) return;
+        json = await loadBackupFromFile(filePath);
+      }
 
       final service = BackupService();
       final metadata = await service.importBackup(json);
