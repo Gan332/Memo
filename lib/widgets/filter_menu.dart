@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../domain/entities/tag_entity.dart';
-
 class FilterMenu extends StatefulWidget {
   final Function(bool? archived, bool? pinned, String? noteType, int? tagId)
       onApplyFilter;

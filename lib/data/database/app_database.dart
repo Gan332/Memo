@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'connection.dart';
+
 part 'app_database.g.dart';
 
 class Notes extends Table {
@@ -55,7 +57,7 @@ class NoteColorValues extends Table {
 class AppDatabase extends _$AppDatabase {
   static AppDatabase? _instance;
 
-  AppDatabase._internal() : super(_openConnection());
+  AppDatabase._internal() : super(openConnection());
 
   factory AppDatabase() => _instance ??= AppDatabase._internal();
 
@@ -68,9 +70,7 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await _seedNoteColors();
         },
-        onUpgrade: (m, from, to) async {
-          // Future migrations go here
-        },
+        onUpgrade: (m, from, to) async {},
         beforeOpen: (details) async {
           await customStatement('PRAGMA journal_mode=WAL');
           await customStatement('PRAGMA foreign_keys=ON');
@@ -79,40 +79,17 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> _seedNoteColors() async {
     final colors = [
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFFEF7E0).value, label: '暖黄'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFE8F5E9).value, label: '淡绿'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFE3F2FD).value, label: '淡蓝'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFFCE4EC).value, label: '淡粉'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFF3E5F5).value, label: '淡紫'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFE0F7FA).value, label: '青'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFFFF8E1).value, label: '淡橙'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFEFEBE9).value, label: '淡棕'),
-      NoteColorValuesCompanion.insert(
-          value: const Color(0xFFE0E0E0).value, label: '灰色'),
-      NoteColorValuesCompanion.insert(
-          value: const int.parse('FFFFFFFF', radix: 16), label: '白色'),
+      NoteColorValuesCompanion.insert(value: 0xFFFEF7E0, label: '暖黄'),
+      NoteColorValuesCompanion.insert(value: 0xFFE8F5E9, label: '淡绿'),
+      NoteColorValuesCompanion.insert(value: 0xFFE3F2FD, label: '淡蓝'),
+      NoteColorValuesCompanion.insert(value: 0xFFFCE4EC, label: '淡粉'),
+      NoteColorValuesCompanion.insert(value: 0xFFF3E5F5, label: '淡紫'),
+      NoteColorValuesCompanion.insert(value: 0xFFE0F7FA, label: '青'),
+      NoteColorValuesCompanion.insert(value: 0xFFFFF8E1, label: '淡橙'),
+      NoteColorValuesCompanion.insert(value: 0xFFEFEBE9, label: '淡棕'),
+      NoteColorValuesCompanion.insert(value: 0xFFE0E0E0, label: '灰色'),
+      NoteColorValuesCompanion.insert(value: 0xFFFFFFFF, label: '白色'),
     ];
     await batch((b) => b.insertAll(noteColorValues, colors));
   }
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = dbFolder.child('memo_app.db');
-
-    // For mobile and desktop, use native sqlite3
-    final driftDatabaseFile = file;
-    final executor = NativeDatabase(driftDatabaseFile);
-
-    return executor;
-  });
 }

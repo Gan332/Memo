@@ -29,7 +29,6 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-pubspec.lock
 
 # Symbolication related
 app.*.symbols
@@ -58,7 +57,6 @@ ios/.symlinks/
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
 ios/Runner/GeneratedPluginRegistrant.*
-ios/**/dgz**
 
 macos/Pods/
 macos/Flutter/ephemeral/
@@ -81,7 +79,3 @@ web/manifest.json
 
 # Coverage
 coverage/
-
-# Pubspec lock - track in repo for reproducible builds
-# Uncomment below if you want to track pubspec.lock
-# !pubspec.lock

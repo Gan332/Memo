@@ -29,8 +29,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Verify pubspec.lock
-        run: flutter pub deps --no-dev --style=compact
+      - name: Generate Drift code
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .
@@ -38,10 +38,7 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      - name: Generate code
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Check generated code
+      - name: Verify generated code is committed
         run: |
           git diff --exit-code lib/**/*.g.dart || (echo "Generated code is out of date. Run 'dart run build_runner build' and commit." && exit 1)
 
@@ -72,7 +69,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate code
+      - name: Generate Drift code
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build APK
