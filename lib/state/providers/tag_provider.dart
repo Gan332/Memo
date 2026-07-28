@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import '../data/database/app_database.dart';
-import '../data/repositories/tag_repository.dart';
-import '../domain/entities/tag_entity.dart';
+import '../../data/database/app_database.dart';
+import '../../data/repositories/tag_repository.dart';
+import '../../domain/entities/tag_entity.dart';
 
 class TagProvider extends ChangeNotifier {
   final AppDatabase _db;

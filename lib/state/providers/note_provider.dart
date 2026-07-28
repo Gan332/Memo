@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart' hide Column;
 
-import '../data/database/app_database.dart';
-import '../data/repositories/note_repository.dart';
-import '../domain/entities/note_entity.dart';
+import '../../data/database/app_database.dart';
+import '../../data/repositories/note_repository.dart';
+import '../../domain/entities/note_entity.dart';
 
 class NoteProvider extends ChangeNotifier {
   final AppDatabase _db;

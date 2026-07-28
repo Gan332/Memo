@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import '../data/database/app_database.dart';
-import '../data/repositories/checklist_repository.dart';
-import '../domain/entities/checklist_entity.dart';
+import '../../data/database/app_database.dart';
+import '../../data/repositories/checklist_repository.dart';
+import '../../domain/entities/checklist_entity.dart';
 
 class ChecklistProvider extends ChangeNotifier {
   final AppDatabase _db;
