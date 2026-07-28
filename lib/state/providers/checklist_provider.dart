@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../data/database/app_database.dart';
@@ -52,7 +53,7 @@ class ChecklistProvider extends ChangeNotifier {
     final id = await _checklistRepository.insertItem(
       ChecklistItemsCompanion.insert(
         noteId: noteId,
-        text: text,
+        itemText: text,
         sortOrder: Value(_items.length),
       ),
     );
@@ -65,7 +66,7 @@ class ChecklistProvider extends ChangeNotifier {
     await _checklistRepository.updateItem(ChecklistItemsCompanion(
       id: Value(item.id!),
       noteId: Value(item.noteId),
-      text: Value(item.text),
+      itemText: Value(item.text),
       isCompleted: Value(item.isCompleted),
       sortOrder: Value(item.sortOrder),
     ));

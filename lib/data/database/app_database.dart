@@ -4,6 +4,7 @@ import 'connection.dart';
 
 part 'app_database.g.dart';
 
+@DataClassName('NoteRow')
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text().withDefault(const Constant(''))();

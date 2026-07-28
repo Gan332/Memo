@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../database/app_database.dart';
+import '../../domain/entities/checklist_entity.dart';
 
 class ChecklistRepository {
   final AppDatabase _db;
@@ -33,10 +34,11 @@ class ChecklistRepository {
         .go();
   }
 
-  Future<void> reorderItems(List<ChecklistItem> items) async {
+  Future<void> reorderItems(List<ChecklistEntity> items) async {
     for (var i = 0; i < items.length; i++) {
+      if (items[i].id == null) continue;
       await (_db.update(_db.checklistItems)
-            ..where((ci) => ci.id.equals(items[i].id)))
+            ..where((ci) => ci.id.equals(items[i].id!)))
           .write(ChecklistItemsCompanion(
         sortOrder: Value(i),
       ));
