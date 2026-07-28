@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   analyze:
@@ -35,23 +35,22 @@ jobs:
       - name: Format code
         run: dart format .
 
-      - name: Check for uncommitted format changes
+      - name: Commit formatted code
         run: |
-          if ! git diff --quiet; then
-            echo "::error::Code is not formatted. Run 'dart format .' locally and commit."
-            git diff --stat
-            exit 1
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "style: auto-format code [skip ci]"
+            git push
           fi
 
       - name: Analyze
         run: flutter analyze
 
-      - name: Verify generated code is committed
+      - name: Verify generated code
         run: |
-          if ! git diff --quiet lib/**/*.g.dart; then
-            echo "::error::Generated code is out of date. Run 'dart run build_runner build' and commit."
-            exit 1
-          fi
+          git diff --exit-code lib/**/*.g.dart || (echo "::error::Generated code is out of date" && exit 1)
 
       - name: Run tests
         run: flutter test --coverage
