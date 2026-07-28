@@ -32,15 +32,26 @@ jobs:
       - name: Generate Drift code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
+      - name: Format code
+        run: dart format .
+
+      - name: Check for uncommitted format changes
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Code is not formatted. Run 'dart format .' locally and commit."
+            git diff --stat
+            exit 1
+          fi
 
       - name: Analyze
         run: flutter analyze
 
       - name: Verify generated code is committed
         run: |
-          git diff --exit-code lib/**/*.g.dart || (echo "Generated code is out of date. Run 'dart run build_runner build' and commit." && exit 1)
+          if ! git diff --quiet lib/**/*.g.dart; then
+            echo "::error::Generated code is out of date. Run 'dart run build_runner build' and commit."
+            exit 1
+          fi
 
       - name: Run tests
         run: flutter test --coverage
