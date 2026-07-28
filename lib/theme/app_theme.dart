@@ -1,68 +1,156 @@
 import 'package:flutter/material.dart';
+import 'package:dynamic_color/dynamic_color.dart';
+
+import 'app_colors.dart';
 
 class AppTheme {
-  // 主色调 - 温暖琥珀
-  static const Color primaryColor = Color(0xFFFF8C00);
-  static const Color primaryLight = Color(0xFFFFB74D);
-  static const Color primaryDark = Color(0xFFE65100);
+  AppTheme._();
 
-  // 背景色
-  static const Color scaffoldBg = Color(0xFFF5F5F5);
-  static const Color cardBg = Colors.white;
+  static ThemeData lightTheme([ColorScheme? colorScheme]) {
+    final scheme = colorScheme ??
+        ColorScheme.fromSeed(
+          seedColor: AppColors.primarySeed,
+          brightness: Brightness.light,
+        );
 
-  // 文字
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textHint = Color(0xFFBDBDBD);
+    return _buildTheme(scheme);
+  }
 
-  static ThemeData get lightTheme {
+  static ThemeData darkTheme([ColorScheme? colorScheme]) {
+    final scheme = colorScheme ??
+        ColorScheme.fromSeed(
+          seedColor: AppColors.primarySeed,
+          brightness: Brightness.dark,
+        );
+
+    return _buildTheme(scheme);
+  }
+
+  static ThemeData _buildTheme(ColorScheme colorScheme) {
+    final isDark = colorScheme.brightness == Brightness.dark;
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: Brightness.light,
-      ),
-      scaffoldBackgroundColor: scaffoldBg,
-      appBarTheme: const AppBarTheme(
+      colorScheme: colorScheme,
+      brightness: colorScheme.brightness,
+      scaffoldBackgroundColor:
+          isDark ? const Color(0xFF1C1B1F) : const Color(0xFFF5F5F5),
+      appBarTheme: AppBarTheme(
         centerTitle: true,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 1,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        surfaceTintColor: colorScheme.surfaceTint,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 4,
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+        elevation: 3,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
+        color: colorScheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryColor, width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: TextStyle(
+          color: colorScheme.onInverseSurface,
+          fontSize: 14,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        indicatorColor: colorScheme.primaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            );
+          }
+          return TextStyle(
+            color: colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          );
+        }),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        indicatorColor: colorScheme.primaryContainer,
+        selectedIconTheme: IconThemeData(color: colorScheme.onPrimaryContainer),
+        unselectedIconTheme:
+            IconThemeData(color: colorScheme.onSurfaceVariant),
+        selectedLabelTextStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          color: colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: colorScheme.outlineVariant,
+        thickness: 1,
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
       ),
     );
+  }
+
+  static Future<ColorScheme?> getDynamicColorScheme(Brightness brightness) async {
+    try {
+      final corePalette = await DynamicColorPlugin.getCorePalette();
+      if (corePalette != null) {
+        return brightness == Brightness.light
+            ? corePalette.toColorScheme()
+            : corePalette.toColorScheme(brightness: Brightness.dark);
+      }
+    } catch (_) {}
+
+    final fallback = await DynamicColorPlugin.getSystemAccentColor();
+    if (fallback != null) {
+      return ColorScheme.fromSeed(
+        seedColor: fallback,
+        brightness: brightness,
+      );
+    }
+
+    return null;
   }
 }

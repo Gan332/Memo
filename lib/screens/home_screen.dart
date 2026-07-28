@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/note.dart';
-import '../providers/note_provider.dart';
+
+import '../state/providers/note_provider.dart';
+import '../state/providers/tag_provider.dart';
+import '../domain/entities/note_entity.dart';
+import '../widgets/note_card.dart';
+import '../widgets/filter_menu.dart';
 import 'add_edit_note_screen.dart';
+import 'archive_screen.dart';
+import 'tag_manage_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,13 +21,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isSearching = false;
   final _searchController = TextEditingController();
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // 延迟加载，等 Provider 就绪
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NoteProvider>().loadNotes();
+      context.read<TagProvider>().loadTags();
     });
   }
 
@@ -34,279 +42,387 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<NoteProvider>().setSearchQuery(value);
   }
 
-  void _openNote({Note? note}) async {
+  void _openNote({NoteEntity? note}) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AddEditNoteScreen(note: note),
       ),
     );
+    if (mounted) {
+      context.read<NoteProvider>().loadNotes();
+    }
   }
 
-  Future<void> _confirmDelete(Note note) async {
-    final confirmed = await showDialog<bool>(
+  void _showFilterMenu() {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除笔记'),
-        content: Text('确定要删除「${note.title}」吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
-          ),
-        ],
+      builder: (_) => FilterMenu(
+        onApplyFilter: (archived, pinned, noteType, tagId) {
+          context.read<NoteProvider>().setFilter(
+                archived: archived,
+                pinned: pinned,
+                noteType: noteType,
+                tagId: tagId,
+              );
+          Navigator.pop(context);
+        },
+        onClearFilter: () {
+          context.read<NoteProvider>().clearFilters();
+          Navigator.pop(context);
+        },
       ),
     );
-
-    if (confirmed == true && context.mounted) {
-      context.read<NoteProvider>().deleteNote(note.id!);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('笔记已删除'), duration: Duration(seconds: 2)),
-        );
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 840;
+
     return Scaffold(
-      appBar: _isSearching ? _buildSearchBar() : _buildNormalAppBar(),
-      body: Consumer<NoteProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (provider.notes.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => provider.loadNotes(),
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
-              itemCount: provider.notes.length,
-              itemBuilder: (context, index) {
-                final note = provider.notes[index];
-                return _NoteCard(
-                  note: note,
-                  onTap: () => _openNote(note: note),
-                  onPin: () => provider.togglePin(note.id!, note.isPinned),
-                  onDelete: () => _confirmDelete(note),
-                );
+      body: isWide ? _buildWideLayout() : _buildNarrowLayout(),
+      bottomNavigationBar: isWide
+          ? null
+          : NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() => _selectedIndex = index);
+                if (index == 1) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ArchiveScreen()),
+                  );
+                } else if (index == 2) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TagManageScreen()),
+                  );
+                } else if (index == 3) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
+                }
               },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.note_outlined),
+                  selectedIcon: Icon(Icons.note),
+                  label: '笔记',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.archive_outlined),
+                  selectedIcon: Icon(Icons.archive),
+                  label: '归档',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.label_outlined),
+                  selectedIcon: Icon(Icons.label),
+                  label: '标签',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: '设置',
+                ),
+              ],
             ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openNote(),
+        tooltip: '新建笔记',
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildNarrowLayout() {
+    return CustomScrollView(
+      slivers: [
+        _buildAppBar(),
+        _buildNoteList(),
+      ],
+    );
+  }
+
+  Widget _buildWideLayout() {
+    return Row(
+      children: [
+        NavigationRail(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            setState(() => _selectedIndex = index);
+          },
+          leading: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: IconButton(
+              icon: const Icon(Icons.note_add_outlined),
+              onPressed: () => _openNote(),
+              tooltip: '新建笔记',
+            ),
+          ),
+          labelType: NavigationRailLabelType.all,
+          destinations: const [
+            NavigationRailDestination(
+              icon: Icon(Icons.note_outlined),
+              selectedIcon: Icon(Icons.note),
+              label: Text('笔记'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.archive_outlined),
+              selectedIcon: Icon(Icons.archive),
+              label: Text('归档'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.label_outlined),
+              selectedIcon: Icon(Icons.label),
+              label: Text('标签'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: Text('设置'),
+            ),
+          ],
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: _selectedIndex == 0
+              ? _buildNotePanel()
+              : _selectedIndex == 1
+                  ? const ArchiveScreen()
+                  : _selectedIndex == 2
+                      ? const TagManageScreen()
+                      : const SettingsScreen(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotePanel() {
+    return Column(
+      children: [
+        _buildSearchBar(),
+        Expanded(child: _buildNoteListBody()),
+      ],
+    );
+  }
+
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      title: _isSearching
+          ? TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: '搜索笔记...',
+                border: InputBorder.none,
+              ),
+              onChanged: _onSearchChanged,
+            )
+          : const Text('备忘录'),
+      actions: [
+        if (!_isSearching) ...[
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: '搜索',
+            onPressed: () => setState(() => _isSearching = true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: '筛选',
+            onPressed: _showFilterMenu,
+          ),
+        ],
+        if (_isSearching)
+          IconButton(
+            icon: const Icon(Icons.clear),
+            tooltip: '清除搜索',
+            onPressed: () {
+              _searchController.clear();
+              _onSearchChanged('');
+              setState(() => _isSearching = false);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索笔记...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _onSearchChanged('');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        onChanged: _onSearchChanged,
+      ),
+    );
+  }
+
+  Widget _buildNoteList() {
+    return Consumer<NoteProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (provider.error.isNotEmpty) {
+          return SliverFillRemaining(
+            child: _buildErrorState(provider),
+          );
+        }
+
+        if (provider.notes.isEmpty) {
+          return SliverFillRemaining(
+            child: _buildEmptyState(provider),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final note = provider.notes[index];
+                return NoteCard(
+                  note: note,
+                  onTap: () => _openNote(
+                    note: NoteEntity(
+                      id: note.id,
+                      title: note.title,
+                      content: note.content,
+                      noteType: NoteType.values.byName(note.noteType),
+                      color: note.color,
+                      isPinned: note.isPinned,
+                      isArchived: note.isArchived,
+                      createdAt: DateTime.parse(note.createdAt),
+                      updatedAt: DateTime.parse(note.updatedAt),
+                    ),
+                  ),
+                );
+              },
+              childCount: provider.notes.length,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNoteListBody() {
+    return Consumer<NoteProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.error.isNotEmpty) {
+          return _buildErrorState(provider);
+        }
+
+        if (provider.notes.isEmpty) {
+          return _buildEmptyState(provider);
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => provider.loadNotes(),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            itemCount: provider.notes.length,
+            itemBuilder: (context, index) {
+              final note = provider.notes[index];
+              return NoteCard(
+                note: note,
+                onTap: () => _openNote(
+                  note: NoteEntity(
+                    id: note.id,
+                    title: note.title,
+                    content: note.content,
+                    noteType: NoteType.values.byName(note.noteType),
+                    color: note.color,
+                    isPinned: note.isPinned,
+                    isArchived: note.isArchived,
+                    createdAt: DateTime.parse(note.createdAt),
+                    updatedAt: DateTime.parse(note.updatedAt),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(NoteProvider provider) {
+    final isSearching = provider.searchQuery.isNotEmpty || provider.isFiltering;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.note_add_outlined,
+            isSearching ? Icons.search_off : Icons.note_add_outlined,
             size: 100,
-            color: Colors.grey.shade300,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
           const SizedBox(height: 16),
           Text(
-            '还没有笔记',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade400,
-            ),
+            isSearching ? '没有找到匹配的笔记' : '还没有笔记',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
-            '点击右下角 + 创建第一条笔记',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade400,
-            ),
+            isSearching ? '试试其他搜索词或筛选条件' : '点击右下角 + 创建第一条笔记',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),
     );
   }
 
-  PreferredSizeWidget _buildNormalAppBar() {
-    return AppBar(
-      title: const Text(
-        '备忘录',
-        style: TextStyle(fontWeight: FontWeight.w600),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: '搜索',
-          onPressed: () => setState(() => _isSearching = true),
-        ),
-      ],
-    );
-  }
-
-  PreferredSizeWidget _buildSearchBar() {
-    return AppBar(
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () {
-          setState(() => _isSearching = false);
-          _searchController.clear();
-          context.read<NoteProvider>().setSearchQuery('');
-        },
-      ),
-      title: TextField(
-        controller: _searchController,
-        autofocus: true,
-        decoration: const InputDecoration(
-          hintText: '搜索笔记...',
-          border: InputBorder.none,
-          filled: false,
-        ),
-        onChanged: _onSearchChanged,
-      ),
-      actions: [
-        if (_searchController.text.isNotEmpty)
-          IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: () {
-              _searchController.clear();
-              _onSearchChanged('');
-            },
-          ),
-      ],
-    );
-  }
-}
-
-/// 单张笔记卡片
-class _NoteCard extends StatelessWidget {
-  final Note note;
-  final VoidCallback onTap;
-  final VoidCallback onPin;
-  final VoidCallback onDelete;
-
-  const _NoteCard({
-    required this.note,
-    required this.onTap,
-    required this.onPin,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Color(note.color);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Card(
-          color: color,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 标题行
-                Row(
-                  children: [
-                    if (note.isPinned) ...[
-                      const Icon(Icons.push_pin, size: 16, color: Colors.orange),
-                      const SizedBox(width: 4),
-                    ],
-                    Expanded(
-                      child: Text(
-                        note.title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-
-                if (note.content.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    note.content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-
-                const SizedBox(height: 12),
-
-                // 底部：日期 + 操作
-                Row(
-                  children: [
-                    Text(
-                      note.formattedDate,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                    const Spacer(),
-                    _CardAction(
-                      icon: note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                      onTap: onPin,
-                    ),
-                    const SizedBox(width: 4),
-                    _CardAction(
-                      icon: Icons.delete_outline,
-                      color: Colors.red.shade300,
-                      onTap: onDelete,
-                    ),
-                  ],
-                ),
-              ],
+  Widget _buildErrorState(NoteProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
             ),
-          ),
+            const SizedBox(height: 16),
+            Text(
+              provider.error,
+              style: Theme.of(context).textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => provider.loadNotes(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试'),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _CardAction extends StatelessWidget {
-  final IconData icon;
-  final Color? color;
-  final VoidCallback onTap;
-
-  const _CardAction({required this.icon, this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: IconButton(
-        icon: Icon(icon, size: 18, color: color ?? Colors.grey.shade500),
-        padding: EdgeInsets.zero,
-        onPressed: onTap,
       ),
     );
   }
