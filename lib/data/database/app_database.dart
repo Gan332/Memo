@@ -42,7 +42,7 @@ class NoteTags extends Table {
 class ChecklistItems extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get noteId => integer().references(Notes, #id)();
-  TextColumn get text => text()();
+  TextColumn get itemText => text()();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }

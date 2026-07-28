@@ -1,14 +1,8 @@
-import 'dart:convert';
-
-import 'package:uuid/uuid.dart';
-
-import '../data/database/app_database.dart';
+import '../database/app_database.dart';
 import '../data/models/backup.dart';
-import '../domain/entities/note_entity.dart';
 
 class BackupService {
   final AppDatabase _db;
-  static const _uuid = Uuid();
 
   BackupService({AppDatabase? db}) : _db = db ?? AppDatabase();
 
@@ -46,7 +40,6 @@ class BackupService {
     await _db.transaction(() async {
       for (final note in backup.notes) {
         try {
-          // Check if note already exists by comparing title + created time
           final existing = await (_db.select(_db.notes)
                 ..where((n) =>
                     n.title.equals(note.title) &
@@ -54,7 +47,6 @@ class BackupService {
               .get();
 
           if (existing.isNotEmpty) {
-            // Update existing note
             await (_db.update(_db.notes)
                   ..where((n) => n.id.equals(existing.first.id)))
                 .write(NotesCompanion(
@@ -68,7 +60,6 @@ class BackupService {
             ));
             updatedCount++;
           } else {
-            // Insert new note
             await _db.into(_db.notes).insert(NotesCompanion.insert(
                   title: note.title,
                   content: note.content,

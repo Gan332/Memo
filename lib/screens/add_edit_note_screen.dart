@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../state/providers/note_provider.dart';
 import '../state/providers/tag_provider.dart';
-import '../state/providers/checklist_provider.dart';
 import '../domain/entities/note_entity.dart';
 import '../domain/entities/tag_entity.dart';
 import '../theme/app_colors.dart';

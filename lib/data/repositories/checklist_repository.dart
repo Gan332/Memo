@@ -34,13 +34,6 @@ class ChecklistRepository {
   }
 
   Future<void> reorderItems(List<ChecklistItem> items) async {
-    await _db.batch((b) {
-      b.updateAll(
-        _db.checklistItems,
-        (row) => RowUpdateCompanion(),
-      );
-    });
-
     for (var i = 0; i < items.length; i++) {
       await (_db.update(_db.checklistItems)
             ..where((ci) => ci.id.equals(items[i].id)))

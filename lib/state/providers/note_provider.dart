@@ -5,13 +5,11 @@ import 'package:drift/drift.dart' hide Column;
 
 import '../data/database/app_database.dart';
 import '../data/repositories/note_repository.dart';
-import '../data/repositories/tag_repository.dart';
 import '../domain/entities/note_entity.dart';
 
 class NoteProvider extends ChangeNotifier {
   final AppDatabase _db;
   late final NoteRepository _noteRepository;
-  late final TagRepository _tagRepository;
 
   List<NoteRow> _notes = [];
   List<NoteRow> _archivedNotes = [];
@@ -26,8 +24,7 @@ class NoteProvider extends ChangeNotifier {
 
   NoteProvider({AppDatabase? db})
       : _db = db ?? AppDatabase(),
-        _noteRepository = NoteRepository(db ?? AppDatabase()),
-        _tagRepository = TagRepository(db ?? AppDatabase());
+        _noteRepository = NoteRepository(db ?? AppDatabase());
 
   List<NoteRow> get notes => _notes;
   List<NoteRow> get archivedNotes => _archivedNotes;

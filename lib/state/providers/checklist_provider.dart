@@ -31,15 +31,13 @@ class ChecklistProvider extends ChangeNotifier {
 
     try {
       final items = await _checklistRepository.getItemsForNote(noteId);
-      _items = items
-          .map((i) => ChecklistEntity(
-                id: i.id,
-                noteId: i.noteId,
-                text: i.text,
-                isCompleted: i.isCompleted,
-                sortOrder: i.sortOrder,
-              ))
-          .toList();
+      _items = items.map((i) => ChecklistEntity(
+        id: i.id,
+        noteId: i.noteId,
+        text: i.itemText,
+        isCompleted: i.isCompleted,
+        sortOrder: i.sortOrder,
+      )).toList();
     } catch (e) {
       _error = '加载清单失败: $e';
     }
