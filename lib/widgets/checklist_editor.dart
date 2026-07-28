@@ -48,7 +48,8 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
           builder: (context, provider, _) {
             if (provider.totalCount > 0) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -215,8 +216,7 @@ class _ChecklistTileState extends State<_ChecklistTile> {
             ),
             IconButton(
               icon: Icon(Icons.delete_outline,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.error),
+                  size: 20, color: Theme.of(context).colorScheme.error),
               onPressed: widget.onDelete,
               tooltip: '删除',
             ),

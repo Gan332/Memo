@@ -37,21 +37,16 @@ class NoteCard extends StatelessWidget {
               onPressed: (_) {
                 context.read<NoteProvider>().togglePin(note.id, note.isPinned);
               },
-              backgroundColor:
-                  Theme.of(context).colorScheme.primaryContainer,
-              foregroundColor:
-                  Theme.of(context).colorScheme.onPrimaryContainer,
-              icon: note.isPinned
-                  ? Icons.push_pin_outlined
-                  : Icons.push_pin,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+              icon: note.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
               label: note.isPinned ? '取消置顶' : '置顶',
             ),
             SlidableAction(
               onPressed: (_) {
                 context.read<NoteProvider>().toggleArchive(note.id, false);
               },
-              backgroundColor:
-                  Theme.of(context).colorScheme.secondaryContainer,
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
               foregroundColor:
                   Theme.of(context).colorScheme.onSecondaryContainer,
               icon: Icons.archive,
@@ -59,10 +54,8 @@ class NoteCard extends StatelessWidget {
             ),
             SlidableAction(
               onPressed: (_) => _confirmDelete(context),
-              backgroundColor:
-                  Theme.of(context).colorScheme.errorContainer,
-              foregroundColor:
-                  Theme.of(context).colorScheme.onErrorContainer,
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
+              foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
               icon: Icons.delete_outline,
               label: '删除',
             ),
@@ -98,12 +91,10 @@ class NoteCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           note.title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                color: onColor,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: onColor,
+                                  ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

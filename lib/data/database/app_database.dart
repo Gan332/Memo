@@ -26,7 +26,9 @@ class Tags extends Table {
   TextColumn get createdAt => text()();
 
   @override
-  List<Set<Column>> get uniqueKeys => [{name}];
+  List<Set<Column>> get uniqueKeys => [
+        {name}
+      ];
 }
 
 class NoteTags extends Table {

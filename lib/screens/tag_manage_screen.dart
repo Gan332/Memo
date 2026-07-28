@@ -88,7 +88,9 @@ class _TagManageScreenState extends State<TagManageScreen> {
               onPressed: () {
                 final name = nameController.text.trim();
                 if (name.isNotEmpty) {
-                  context.read<TagProvider>().addTag(name, color: selectedColor);
+                  context
+                      .read<TagProvider>()
+                      .addTag(name, color: selectedColor);
                   Navigator.of(ctx).pop();
                 }
               },

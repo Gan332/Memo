@@ -30,12 +30,10 @@ class MemoApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return DynamicColorBuilder(
             builder: (lightColorScheme, darkColorScheme) {
-              final lightScheme = themeProvider.useDynamicColor
-                  ? lightColorScheme
-                  : null;
-              final darkScheme = themeProvider.useDynamicColor
-                  ? darkColorScheme
-                  : null;
+              final lightScheme =
+                  themeProvider.useDynamicColor ? lightColorScheme : null;
+              final darkScheme =
+                  themeProvider.useDynamicColor ? darkColorScheme : null;
 
               return MaterialApp(
                 title: '备忘录',

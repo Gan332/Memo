@@ -17,8 +17,16 @@ class AppColors {
   ];
 
   static const List<String> notePaletteLabels = [
-    '暖黄', '淡绿', '淡蓝', '淡粉', '淡紫',
-    '青', '淡橙', '淡棕', '灰色', '白色',
+    '暖黄',
+    '淡绿',
+    '淡蓝',
+    '淡粉',
+    '淡紫',
+    '青',
+    '淡橙',
+    '淡棕',
+    '灰色',
+    '白色',
   ];
 
   static Color backgroundColor(int colorValue, Brightness brightness) {

@@ -197,8 +197,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                         itemCount: tagProvider.tags.length,
                         itemBuilder: (context, index) {
                           final tag = tagProvider.tags[index];
-                          final isSelected =
-                              _selectedTagIds.contains(tag.id);
+                          final isSelected = _selectedTagIds.contains(tag.id);
                           return CheckboxListTile(
                             title: TagChip(tag: tag),
                             value: isSelected,
@@ -234,9 +233,9 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       ),
       appBar: AppBar(
         backgroundColor: AppColors.backgroundColor(
-              _selectedColor.value,
-              Theme.of(context).brightness,
-            ).withOpacity(0.8),
+          _selectedColor.value,
+          Theme.of(context).brightness,
+        ).withOpacity(0.8),
         title: Text(isEditing ? '编辑笔记' : '新建笔记'),
         actions: [
           if (isEditing && widget.note!.noteType != 'checklist')
@@ -253,12 +252,9 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
           if (!isEditing)
             IconButton(
               icon: Icon(
-                _noteType == NoteType.checklist
-                    ? Icons.checklist
-                    : Icons.notes,
+                _noteType == NoteType.checklist ? Icons.checklist : Icons.notes,
               ),
-              tooltip:
-                  _noteType == NoteType.checklist ? '切换为文本' : '切换为清单',
+              tooltip: _noteType == NoteType.checklist ? '切换为文本' : '切换为清单',
               onPressed: () {
                 setState(() {
                   _noteType = _noteType == NoteType.text

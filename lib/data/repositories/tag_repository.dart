@@ -8,7 +8,8 @@ class TagRepository {
   TagRepository(this._db);
 
   Future<List<Tag>> getAllTags() {
-    return (_db.select(_db.tags)..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
+    return (_db.select(_db.tags)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .get();
   }
 
   Future<int> insertTag(TagsCompanion tag) {

@@ -104,8 +104,7 @@ class AppTheme {
       navigationRailTheme: NavigationRailThemeData(
         indicatorColor: colorScheme.primaryContainer,
         selectedIconTheme: IconThemeData(color: colorScheme.onPrimaryContainer),
-        unselectedIconTheme:
-            IconThemeData(color: colorScheme.onSurfaceVariant),
+        unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
         selectedLabelTextStyle: TextStyle(
           color: colorScheme.onSurface,
           fontWeight: FontWeight.w600,
@@ -133,7 +132,8 @@ class AppTheme {
     );
   }
 
-  static Future<ColorScheme?> getDynamicColorScheme(Brightness brightness) async {
+  static Future<ColorScheme?> getDynamicColorScheme(
+      Brightness brightness) async {
     try {
       final corePalette = await DynamicColorPlugin.getCorePalette();
       if (corePalette != null) {

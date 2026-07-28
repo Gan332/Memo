@@ -19,8 +19,7 @@ class NoteRepository {
     if (searchQuery != null && searchQuery.isNotEmpty) {
       query = query
         ..where((n) =>
-            n.title.like('%$searchQuery%') |
-            n.content.like('%$searchQuery%'));
+            n.title.like('%$searchQuery%') | n.content.like('%$searchQuery%'));
     }
 
     if (isArchived != null) {
@@ -35,7 +34,11 @@ class NoteRepository {
       query = query..where((n) => n.noteType.equals(noteType));
     }
 
-    query = query..orderBy([(n) => OrderingTerm.desc(n.isPinned), (n) => OrderingTerm.desc(n.updatedAt)]);
+    query = query
+      ..orderBy([
+        (n) => OrderingTerm.desc(n.isPinned),
+        (n) => OrderingTerm.desc(n.updatedAt)
+      ]);
 
     final notes = await query.get();
 
@@ -57,7 +60,8 @@ class NoteRepository {
   }
 
   Future<NoteWithTags?> getNote(int id) async {
-    final note = await (_db.select(_db.notes)..where((n) => n.id.equals(id))).getSingleOrNull();
+    final note = await (_db.select(_db.notes)..where((n) => n.id.equals(id)))
+        .getSingleOrNull();
     if (note == null) return null;
     final tags = await getTagsForNote(id);
     return NoteWithTags(note: note, tags: tags);
@@ -76,7 +80,8 @@ class NoteRepository {
   }
 
   Future<void> togglePin(int id, bool currentPinned) async {
-    final note = await (_db.select(_db.notes)..where((n) => n.id.equals(id))).getSingleOrNull();
+    final note = await (_db.select(_db.notes)..where((n) => n.id.equals(id)))
+        .getSingleOrNull();
     if (note == null) return;
 
     await (_db.update(_db.notes)..where((n) => n.id.equals(id))).write(
@@ -99,7 +104,8 @@ class NoteRepository {
   Future<List<Tag>> getTagsForNote(int noteId) async {
     final query = _db.select(_db.noteTags).join([
       innerJoin(_db.tags, _db.tags.id.equalsExp(_db.noteTags.tagId)),
-    ])..where(_db.noteTags.noteId.equals(noteId));
+    ])
+      ..where(_db.noteTags.noteId.equals(noteId));
 
     final results = await query.get();
     return results.map((row) => row.readTable(_db.tags)).toList();

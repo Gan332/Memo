@@ -34,7 +34,8 @@ class BackupService {
     final backup = BackupData.fromJsonString(jsonString);
 
     if (backup.schemaVersion > _db.schemaVersion) {
-      throw Exception('备份版本 (${backup.schemaVersion}) 高于当前版本 (${_db.schemaVersion})');
+      throw Exception(
+          '备份版本 (${backup.schemaVersion}) 高于当前版本 (${_db.schemaVersion})');
     }
 
     int addedCount = 0;

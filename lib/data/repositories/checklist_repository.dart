@@ -23,11 +23,14 @@ class ChecklistRepository {
   }
 
   Future<int> deleteItem(int id) {
-    return (_db.delete(_db.checklistItems)..where((ci) => ci.id.equals(id))).go();
+    return (_db.delete(_db.checklistItems)..where((ci) => ci.id.equals(id)))
+        .go();
   }
 
   Future<int> deleteItemsForNote(int noteId) {
-    return (_db.delete(_db.checklistItems)..where((ci) => ci.noteId.equals(noteId))).go();
+    return (_db.delete(_db.checklistItems)
+          ..where((ci) => ci.noteId.equals(noteId)))
+        .go();
   }
 
   Future<void> reorderItems(List<ChecklistItem> items) async {

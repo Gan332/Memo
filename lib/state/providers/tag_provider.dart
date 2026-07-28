@@ -27,12 +27,14 @@ class TagProvider extends ChangeNotifier {
 
     try {
       final tagRows = await _tagRepository.getAllTags();
-      _tags = tagRows.map((t) => TagEntity(
-        id: t.id,
-        name: t.name,
-        color: t.color,
-        createdAt: DateTime.parse(t.createdAt),
-      )).toList();
+      _tags = tagRows
+          .map((t) => TagEntity(
+                id: t.id,
+                name: t.name,
+                color: t.color,
+                createdAt: DateTime.parse(t.createdAt),
+              ))
+          .toList();
     } catch (e) {
       _error = '加载标签失败: $e';
     }
@@ -69,19 +71,19 @@ class TagProvider extends ChangeNotifier {
 
   Future<void> addTagToNote(int noteId, int tagId) async {
     await _db.into(_db.noteTags).insert(
-      NoteTagsCompanion.insert(noteId: noteId, tagId: tagId),
-    );
+          NoteTagsCompanion.insert(noteId: noteId, tagId: tagId),
+        );
   }
 
   Future<void> removeTagFromNote(int noteId, int tagId) async {
     await (_db.delete(_db.noteTags)
-      ..where((nt) => nt.noteId.equals(noteId) & nt.tagId.equals(tagId)))
+          ..where((nt) => nt.noteId.equals(noteId) & nt.tagId.equals(tagId)))
         .go();
   }
 
   Future<List<int>> getTagIdsForNote(int noteId) async {
     final result = await (_db.select(_db.noteTags)
-      ..where((nt) => nt.noteId.equals(noteId)))
+          ..where((nt) => nt.noteId.equals(noteId)))
         .get();
     return result.map((nt) => nt.tagId).toList();
   }

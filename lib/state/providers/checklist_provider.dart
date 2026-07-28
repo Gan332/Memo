@@ -22,8 +22,7 @@ class ChecklistProvider extends ChangeNotifier {
 
   int get completedCount => _items.where((i) => i.isCompleted).length;
   int get totalCount => _items.length;
-  double get progress =>
-      totalCount > 0 ? completedCount / totalCount : 0.0;
+  double get progress => totalCount > 0 ? completedCount / totalCount : 0.0;
 
   Future<void> loadItems(int noteId) async {
     _isLoading = true;
@@ -32,13 +31,15 @@ class ChecklistProvider extends ChangeNotifier {
 
     try {
       final items = await _checklistRepository.getItemsForNote(noteId);
-      _items = items.map((i) => ChecklistEntity(
-        id: i.id,
-        noteId: i.noteId,
-        text: i.text,
-        isCompleted: i.isCompleted,
-        sortOrder: i.sortOrder,
-      )).toList();
+      _items = items
+          .map((i) => ChecklistEntity(
+                id: i.id,
+                noteId: i.noteId,
+                text: i.text,
+                isCompleted: i.isCompleted,
+                sortOrder: i.sortOrder,
+              ))
+          .toList();
     } catch (e) {
       _error = '加载清单失败: $e';
     }
