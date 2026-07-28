@@ -49,14 +49,17 @@ class NoteProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _notes = await _noteRepository.getNotes(
+      _notes = (await _noteRepository.getNotes(
         searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
         isArchived: _filterArchived,
         isPinned: _filterPinned,
         noteType: _filterNoteType,
         tagId: _filterTagId,
-      );
-      _archivedNotes = await _noteRepository.getNotes(isArchived: true);
+      ))
+          .map((nwt) => nwt.note)
+          .toList();
+      _archivedNotes =
+          (await _noteRepository.getNotes(isArchived: true)).map((nwt) => nwt.note).toList();
     } catch (e) {
       _error = '加载笔记失败: $e';
     }
@@ -148,10 +151,10 @@ class NoteProvider extends ChangeNotifier {
 
   Future<void> restoreDeletedNote(NoteRow note) async {
     await _noteRepository.insertNote(NotesCompanion.insert(
-      title: note.title,
-      content: note.content,
-      noteType: note.noteType,
-      color: note.color,
+      title: Value(note.title),
+      content: Value(note.content),
+      noteType: Value(note.noteType),
+      color: Value(note.color),
       isPinned: Value(note.isPinned),
       isArchived: Value(note.isArchived),
       createdAt: note.createdAt,

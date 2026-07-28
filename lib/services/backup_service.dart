@@ -63,9 +63,9 @@ class BackupService {
             updatedCount++;
           } else {
             await _db.into(_db.notes).insert(NotesCompanion.insert(
-                  title: note.title,
-                  content: note.content,
-                  noteType: note.noteType,
+                  title: Value(note.title),
+                  content: Value(note.content),
+                  noteType: Value(note.noteType),
                   color: Value(note.color),
                   isPinned: Value(note.isPinned),
                   isArchived: Value(note.isArchived),

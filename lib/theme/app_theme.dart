@@ -132,25 +132,4 @@ class AppTheme {
     );
   }
 
-  static Future<ColorScheme?> getDynamicColorScheme(
-      Brightness brightness) async {
-    try {
-      final corePalette = await DynamicColorPlugin.getCorePalette();
-      if (corePalette != null) {
-        return brightness == Brightness.light
-            ? corePalette.toColorScheme()
-            : corePalette.toColorScheme(brightness: Brightness.dark);
-      }
-    } catch (_) {}
-
-    final fallback = await DynamicColorPlugin.getSystemAccentColor();
-    if (fallback != null) {
-      return ColorScheme.fromSeed(
-        seedColor: fallback,
-        brightness: brightness,
-      );
-    }
-
-    return null;
-  }
 }

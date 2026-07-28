@@ -36,7 +36,7 @@ void main() {
           ChecklistItem(
             id: 1,
             noteId: 1,
-            text: 'Buy milk',
+            itemText: 'Buy milk',
             isCompleted: false,
             sortOrder: 0,
           ),
@@ -53,7 +53,7 @@ void main() {
       expect(restored.tags[0].name, 'important');
       expect(restored.noteTags.length, 1);
       expect(restored.checklistItems.length, 1);
-      expect(restored.checklistItems[0].text, 'Buy milk');
+      expect(restored.checklistItems[0].itemText, 'Buy milk');
     });
 
     test('should handle empty backup', () {
