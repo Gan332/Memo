@@ -5,7 +5,6 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../data/database/app_database.dart';
 import '../state/providers/note_provider.dart';
 import '../theme/app_colors.dart';
-import 'package:drift/drift.dart' hide Column;
 
 class ArchiveScreen extends StatefulWidget {
   const ArchiveScreen({super.key});
