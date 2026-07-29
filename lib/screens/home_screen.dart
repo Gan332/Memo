@@ -201,27 +201,27 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationRailDestination(
               icon: const Icon(Icons.note_outlined),
               selectedIcon: const Icon(Icons.note),
-              label: AppLocalizations.of(context).textNote,
+              label: Text(AppLocalizations.of(context).textNote),
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.archive_outlined),
               selectedIcon: const Icon(Icons.archive),
-              label: AppLocalizations.of(context).archive,
+              label: Text(AppLocalizations.of(context).archive),
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.label_outlined),
               selectedIcon: const Icon(Icons.label),
-              label: AppLocalizations.of(context).tagManage,
+              label: Text(AppLocalizations.of(context).tagManage),
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.delete_outline),
               selectedIcon: const Icon(Icons.delete),
-              label: AppLocalizations.of(context).trash,
+              label: Text(AppLocalizations.of(context).trash),
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.settings_outlined),
               selectedIcon: const Icon(Icons.settings),
-              label: AppLocalizations.of(context).settings,
+              label: Text(AppLocalizations.of(context).settings),
             ),
           ],
         ),
