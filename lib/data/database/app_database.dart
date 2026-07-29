@@ -110,11 +110,6 @@ class AppDatabase extends _$AppDatabase {
                 title, content, content=notes, content_rowid=id
               );
             ''');
-          }
-          if (from < 4) {
-            await m.addColumn(notes, notes.reminderTimestamp);
-            await m.addColumn(notes, notes.reminderFired);
-          }
             await customStatement('''
               CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
                 INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
@@ -131,6 +126,10 @@ class AppDatabase extends _$AppDatabase {
                 INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
               END;
             ''');
+          }
+          if (from < 4) {
+            await m.addColumn(notes, notes.reminderTimestamp);
+            await m.addColumn(notes, notes.reminderFired);
           }
         },
         beforeOpen: (details) async {
