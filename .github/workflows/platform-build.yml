@@ -127,7 +127,7 @@ jobs:
 
       - name: Install VS2019 Build Tools
         shell: pwsh
-        run: choco install visualstudio2019buildtools --package-parameters "--quiet --wait --norestart --nocache" -y --force
+        run: choco install visualstudio2019buildtools --package-parameters "--quiet --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" -y --force
 
       - name: Create platform dirs
         run: flutter create . --project-name memo_app --org com.memo
