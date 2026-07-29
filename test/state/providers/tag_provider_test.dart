@@ -1,8 +1,9 @@
+import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memo_app/state/providers/tag_provider.dart';
 import 'package:memo_app/data/database/app_database.dart';
 
-import '../helpers/test_database.dart';
+import '../../helpers/test_database.dart';
 
 void main() {
   late AppDatabase db;
@@ -57,7 +58,7 @@ void main() {
     test('addTagToNote creates association', () async {
       // Insert a note
       final noteId = await db.into(db.notes).insert(
-            const NotesCompanion.insert(
+            NotesCompanion.insert(
               title: Value('Note'),
               createdAt: '2025-01-01T00:00:00',
               updatedAt: '2025-01-01T00:00:00',
@@ -76,7 +77,7 @@ void main() {
     test('removeTagFromNote removes association', () async {
       // Insert a note
       final noteId = await db.into(db.notes).insert(
-            const NotesCompanion.insert(
+            NotesCompanion.insert(
               title: Value('Note'),
               createdAt: '2025-01-01T00:00:00',
               updatedAt: '2025-01-01T00:00:00',
@@ -96,7 +97,7 @@ void main() {
     test('getTagIdsForNote returns correct ids', () async {
       // Insert a note
       final noteId = await db.into(db.notes).insert(
-            const NotesCompanion.insert(
+            NotesCompanion.insert(
               title: Value('Note'),
               createdAt: '2025-01-01T00:00:00',
               updatedAt: '2025-01-01T00:00:00',

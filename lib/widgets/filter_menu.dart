@@ -78,7 +78,7 @@ class _FilterMenuState extends State<FilterMenu> {
           ),
           const SizedBox(height: 16),
           Text(
-            l10n.sortBy ?? 'Sort by',
+            l10n.sortBy,
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
@@ -86,15 +86,15 @@ class _FilterMenuState extends State<FilterMenu> {
             segments: [
               ButtonSegment(
                 value: SortBy.updatedAt,
-                label: Text(l10n.lastModified ?? 'Modified'),
+                label: Text(l10n.lastModified),
               ),
               ButtonSegment(
                 value: SortBy.createdAt,
-                label: Text(l10n.createdAtLabel ?? 'Created'),
+                label: Text(l10n.createdAtLabel),
               ),
               ButtonSegment(
                 value: SortBy.title,
-                label: Text(l10n.titleLabel ?? 'Title'),
+                label: Text(l10n.titleLabel),
               ),
             ],
             selected: {_sortBy},
@@ -105,7 +105,7 @@ class _FilterMenuState extends State<FilterMenu> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(l10n.ascending ?? 'Ascending'),
+              Text(l10n.ascending),
               const Spacer(),
               Switch(
                 value: _sortAscending,

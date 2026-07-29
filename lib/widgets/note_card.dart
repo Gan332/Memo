@@ -201,8 +201,8 @@ class NoteCard extends StatelessWidget {
                 ),
                 if (note.content.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  SizedBox(
-                    maxHeight: 48,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 48),
                     child: MarkdownBody(
                       data: note.content,
                       selectable: true,
@@ -276,8 +276,8 @@ class NoteCard extends StatelessWidget {
               ),
               if (note.content.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                SizedBox(
-                  maxHeight: 48,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 48),
                   child: MarkdownBody(
                     data: note.content,
                     selectable: true,

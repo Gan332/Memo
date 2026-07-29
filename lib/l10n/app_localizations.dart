@@ -19,14 +19,6 @@ class AppLocalizations {
 
   bool get isZh => locale.languageCode == 'zh';
 
-  String _replace(String template, Map<String, String> params) {
-    var result = template;
-    for (final entry in params.entries) {
-      result = result.replaceAll('{${entry.key}}', entry.value);
-    }
-    return result;
-  }
-
   String get appTitle => isZh ? '备忘录' : 'Memo';
   String get homeTitle => isZh ? '备忘录' : 'Memo';
   String get emptyNotes => isZh ? '还没有笔记' : 'No notes yet';
@@ -109,7 +101,7 @@ class AppLocalizations {
     required int skipped,
     required int failed,
   }) => isZh
-      ? '导入完成: 新增${added}条, 更新${updated}条, 跳过${skipped}条, 失败${failed}条'
+      ? '导入完成: 新增$added条, 更新$updated条, 跳过$skipped条, 失败$failed条'
       : 'Import complete: $added added, $updated updated, $skipped skipped, $failed failed';
 
   String importFailed(String error) => isZh
@@ -158,7 +150,6 @@ class AppLocalizations {
 
   // Preview & Stats
   String get preview => isZh ? '预览' : 'Preview';
-  String get edit => isZh ? '编辑' : 'Edit';
   String get noPreviewContent => isZh ? '暂无内容预览' : 'Nothing to preview';
   String charCount(int count) => isZh ? '字符: $count' : 'Chars: $count';
   String wordCount(int count) => isZh ? '单词: $count' : 'Words: $count';
@@ -176,7 +167,6 @@ class AppLocalizations {
   // Export
   String get export => isZh ? '导出' : 'Export';
   String get exportSuccess => isZh ? '导出成功' : 'Export successful';
-  String exportFailed(String error) => isZh ? '导出失败: $error' : 'Export failed: $error';
 
   // Templates
   String get newNoteFromTemplate => isZh ? '新建笔记' : 'New Note';

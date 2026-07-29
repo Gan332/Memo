@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memo_app/state/providers/note_provider.dart';
 import 'package:memo_app/data/database/app_database.dart';
-import 'package:drift/drift.dart';
+import 'package:memo_app/domain/entities/note_entity.dart';
 
-import '../helpers/test_database.dart';
+import '../../helpers/test_database.dart';
 
 void main() {
   late AppDatabase db;

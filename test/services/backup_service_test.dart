@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memo_app/services/backup_service.dart';
 import 'package:memo_app/data/database/app_database.dart';
+import 'package:memo_app/data/models/backup.dart';
 
 import '../helpers/test_database.dart';
 
@@ -42,7 +43,7 @@ void main() {
     test('importBackup restores notes', () async {
       // Create backup data
       final now = DateTime.now();
-      final noteId = await db.into(db.notes).insert(NotesCompanion.insert(
+      await db.into(db.notes).insert(NotesCompanion.insert(
             title: Value('Original'),
             content: Value('Content'),
             createdAt: now.toIso8601String(),
@@ -101,7 +102,7 @@ void main() {
 
     test('importBackup restores tags', () async {
       final now = DateTime.now();
-      final tagId = await db.into(db.tags).insert(TagsCompanion.insert(
+      await db.into(db.tags).insert(TagsCompanion.insert(
             name: 'Work',
             createdAt: now.toIso8601String(),
           ));

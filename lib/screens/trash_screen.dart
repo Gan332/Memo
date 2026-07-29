@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../state/providers/note_provider.dart';
 import '../widgets/note_card.dart';
-import '../domain/entities/note_entity.dart';
 
 class TrashScreen extends StatelessWidget {
   const TrashScreen({super.key});
@@ -53,19 +52,8 @@ class TrashScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final note = provider.trashedNotes[index];
                     return NoteCard(
-                      note: NoteEntity(
-                        id: note.id,
-                        title: note.title,
-                        content: note.content,
-                        noteType: note.noteType == 'checklist'
-                            ? NoteType.checklist
-                            : NoteType.text,
-                        color: note.color,
-                        isPinned: note.isPinned,
-                        isArchived: note.isArchived,
-                        createdAt: DateTime.parse(note.createdAt),
-                        updatedAt: DateTime.parse(note.updatedAt),
-                      ),
+                      note: note,
+                      onTap: () {},
                       isTrash: true,
                       onRestore: () => provider.restoreNote(note.id),
                       onPermanentDelete: () =>

@@ -63,7 +63,7 @@ class BackupService {
               isArchived: Value(note.isArchived),
               updatedAt: Value(note.updatedAt),
             ));
-            noteIdMap[note.id!] = existing.first.id!;
+            noteIdMap[note.id] = existing.first.id;
             updatedCount++;
           } else {
             final newId = await _db.into(_db.notes).insert(NotesCompanion.insert(
@@ -76,7 +76,7 @@ class BackupService {
                   createdAt: note.createdAt,
                   updatedAt: note.updatedAt,
                 ));
-            noteIdMap[note.id!] = newId;
+            noteIdMap[note.id] = newId;
             addedCount++;
           }
         } catch (e) {
@@ -91,14 +91,14 @@ class BackupService {
               .get();
 
           if (existing.isNotEmpty) {
-            tagIdMap[tag.id!] = existing.first.id!;
+            tagIdMap[tag.id] = existing.first.id;
           } else {
             final newId = await _db.into(_db.tags).insert(TagsCompanion.insert(
                   name: tag.name,
                   color: Value(tag.color),
                   createdAt: tag.createdAt,
                 ));
-            tagIdMap[tag.id!] = newId;
+            tagIdMap[tag.id] = newId;
           }
         } catch (e) {
           failedCount++;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../data/models/note_template.dart';
-import '../domain/entities/note_entity.dart';
 
 class TemplatePicker extends StatelessWidget {
   final void Function(NoteTemplate template) onSelect;

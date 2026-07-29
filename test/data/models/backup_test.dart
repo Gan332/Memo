@@ -17,6 +17,7 @@ void main() {
             color: 0xFFFEF7E0,
             isPinned: true,
             isArchived: false,
+            isDeleted: false,
             createdAt: '2025-01-15T10:00:00.000',
             updatedAt: '2025-01-15T10:30:00.000',
           ),

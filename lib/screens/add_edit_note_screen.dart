@@ -5,7 +5,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../services/notification_service.dart';
 import '../services/export_service.dart';
-import '../l10n/app_localizations.dart';
 import '../state/providers/note_provider.dart';
 import '../state/providers/tag_provider.dart';
 import '../state/providers/checklist_provider.dart';

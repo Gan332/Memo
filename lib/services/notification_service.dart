@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -13,6 +14,7 @@ class NotificationService {
   static void Function(int noteId)? onNotificationTap;
 
   Future<void> init() async {
+    tzdata.initializeTimeZones();
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -72,11 +74,11 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _plugin.schedule(
+    await _plugin.zonedSchedule(
       id,
       title,
       body,
-      scheduledDate,
+      tz.TZDateTime.from(scheduledDate, tz.local),
       details,
       payload: id.toString(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

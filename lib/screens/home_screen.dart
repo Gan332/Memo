@@ -8,7 +8,6 @@ import '../domain/entities/note_entity.dart';
 import '../widgets/note_card.dart';
 import '../widgets/filter_menu.dart';
 import '../widgets/template_picker.dart';
-import '../data/models/note_template.dart';
 import 'add_edit_note_screen.dart';
 import 'archive_screen.dart';
 import 'tag_manage_screen.dart';
@@ -140,27 +139,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationDestination(
                   icon: const Icon(Icons.note_outlined),
                   selectedIcon: const Icon(Icons.note),
-                  label: Text(AppLocalizations.of(context).textNote),
+                  label: AppLocalizations.of(context).textNote,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.archive_outlined),
                   selectedIcon: const Icon(Icons.archive),
-                  label: Text(AppLocalizations.of(context).archive),
+                  label: AppLocalizations.of(context).archive,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.label_outlined),
                   selectedIcon: const Icon(Icons.label),
-                  label: Text(AppLocalizations.of(context).tagManage),
+                  label: AppLocalizations.of(context).tagManage,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.delete_outline),
                   selectedIcon: const Icon(Icons.delete),
-                  label: Text(AppLocalizations.of(context).trash),
+                  label: AppLocalizations.of(context).trash,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.settings_outlined),
                   selectedIcon: const Icon(Icons.settings),
-                  label: Text(AppLocalizations.of(context).settings),
+                  label: AppLocalizations.of(context).settings,
                 ),
               ],
             ),
@@ -202,27 +201,27 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationRailDestination(
               icon: const Icon(Icons.note_outlined),
               selectedIcon: const Icon(Icons.note),
-              label: Text(AppLocalizations.of(context).textNote),
+              label: AppLocalizations.of(context).textNote,
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.archive_outlined),
               selectedIcon: const Icon(Icons.archive),
-              label: Text(AppLocalizations.of(context).archive),
+              label: AppLocalizations.of(context).archive,
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.label_outlined),
               selectedIcon: const Icon(Icons.label),
-              label: Text(AppLocalizations.of(context).tagManage),
+              label: AppLocalizations.of(context).tagManage,
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.delete_outline),
               selectedIcon: const Icon(Icons.delete),
-              label: Text(AppLocalizations.of(context).trash),
+              label: AppLocalizations.of(context).trash,
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.settings_outlined),
               selectedIcon: const Icon(Icons.settings),
-              label: Text(AppLocalizations.of(context).settings),
+              label: AppLocalizations.of(context).settings,
             ),
           ],
         ),

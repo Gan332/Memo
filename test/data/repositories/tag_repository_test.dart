@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:memo_app/data/database/app_database.dart';
 import 'package:memo_app/data/repositories/tag_repository.dart';
 
-import '../helpers/test_database.dart';
+import '../../helpers/test_database.dart';
 
 void main() {
   late AppDatabase db;

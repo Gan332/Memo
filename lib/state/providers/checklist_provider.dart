@@ -6,7 +6,6 @@ import '../../data/repositories/checklist_repository.dart';
 import '../../domain/entities/checklist_entity.dart';
 
 class ChecklistProvider extends ChangeNotifier {
-  final AppDatabase _db;
   late final ChecklistRepository _checklistRepository;
 
   List<ChecklistEntity> _items = [];
@@ -14,8 +13,7 @@ class ChecklistProvider extends ChangeNotifier {
   String _error = '';
 
   ChecklistProvider({AppDatabase? db})
-      : _db = db ?? AppDatabase(),
-        _checklistRepository = ChecklistRepository(db ?? AppDatabase());
+      : _checklistRepository = ChecklistRepository(db ?? AppDatabase());
 
   List<ChecklistEntity> get items => _items;
   bool get isLoading => _isLoading;
