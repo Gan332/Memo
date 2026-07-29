@@ -126,7 +126,12 @@ jobs:
           cache: true
 
       - name: Install Ninja
-        run: choco install ninja
+        shell: pwsh
+        run: |
+          choco install ninja -y --force
+          $ninjaDir = "C:\ProgramData\chocolatey\bin"
+          echo "$ninjaDir" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & "$ninjaDir\ninja.exe" --version
 
       - name: Create platform dirs
         run: flutter create . --project-name memo_app --org com.memo
