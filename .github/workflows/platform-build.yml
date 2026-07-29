@@ -114,7 +114,7 @@ jobs:
 
   build-windows:
     name: Build Windows
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -125,13 +125,9 @@ jobs:
           flutter-version: '3.27.4'
           cache: true
 
-      - name: Install Ninja
+      - name: Install VS2019 Build Tools
         shell: pwsh
-        run: |
-          choco install ninja -y --force
-          $ninjaDir = "C:\ProgramData\chocolatey\bin"
-          echo "$ninjaDir" | Out-File -FilePath $env:GITHUB_PATH -Append
-          & "$ninjaDir\ninja.exe" --version
+        run: choco install visualstudio2019buildtools --package-parameters "--quiet --wait --norestart --nocache" -y --force
 
       - name: Create platform dirs
         run: flutter create . --project-name memo_app --org com.memo
