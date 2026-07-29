@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/providers/note_provider.dart';
 import '../state/providers/tag_provider.dart';
 import '../domain/entities/note_entity.dart';
 import '../widgets/note_card.dart';
 import '../widgets/filter_menu.dart';
+import '../widgets/template_picker.dart';
+import '../data/models/note_template.dart';
 import 'add_edit_note_screen.dart';
 import 'archive_screen.dart';
 import 'tag_manage_screen.dart';
 import 'settings_screen.dart';
+import 'trash_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,6 +55,33 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       context.read<NoteProvider>().loadNotes();
     }
+  }
+
+  void _showTemplatePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => TemplatePicker(
+        onSelect: (template) {
+          Navigator.of(context).pop();
+          if (template.name == '空白笔记') {
+            _openNote();
+          } else {
+            _openNote(
+              note: NoteEntity(
+                title: template.title,
+                content: template.content,
+                noteType: template.noteType,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _showFilterMenu() {
@@ -97,36 +128,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 } else if (index == 3) {
                   Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TrashScreen()),
+                  );
+                } else if (index == 4) {
+                  Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const SettingsScreen()),
                   );
                 }
               },
-              destinations: const [
+              destinations: [
                 NavigationDestination(
-                  icon: Icon(Icons.note_outlined),
-                  selectedIcon: Icon(Icons.note),
-                  label: '笔记',
+                  icon: const Icon(Icons.note_outlined),
+                  selectedIcon: const Icon(Icons.note),
+                  label: Text(AppLocalizations.of(context).textNote),
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.archive_outlined),
-                  selectedIcon: Icon(Icons.archive),
-                  label: '归档',
+                  icon: const Icon(Icons.archive_outlined),
+                  selectedIcon: const Icon(Icons.archive),
+                  label: Text(AppLocalizations.of(context).archive),
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.label_outlined),
-                  selectedIcon: Icon(Icons.label),
-                  label: '标签',
+                  icon: const Icon(Icons.label_outlined),
+                  selectedIcon: const Icon(Icons.label),
+                  label: Text(AppLocalizations.of(context).tagManage),
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: '设置',
+                  icon: const Icon(Icons.delete_outline),
+                  selectedIcon: const Icon(Icons.delete),
+                  label: Text(AppLocalizations.of(context).trash),
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.settings_outlined),
+                  selectedIcon: const Icon(Icons.settings),
+                  label: Text(AppLocalizations.of(context).settings),
                 ),
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _openNote(),
-        tooltip: '新建笔记',
+        onPressed: _showTemplatePicker,
+        tooltip: AppLocalizations.of(context).newNote,
         child: const Icon(Icons.add),
       ),
     );
@@ -154,30 +194,35 @@ class _HomeScreenState extends State<HomeScreen> {
             child: IconButton(
               icon: const Icon(Icons.note_add_outlined),
               onPressed: () => _openNote(),
-              tooltip: '新建笔记',
+              tooltip: AppLocalizations.of(context).newNote,
             ),
           ),
           labelType: NavigationRailLabelType.all,
-          destinations: const [
+          destinations: [
             NavigationRailDestination(
-              icon: Icon(Icons.note_outlined),
-              selectedIcon: Icon(Icons.note),
-              label: Text('笔记'),
+              icon: const Icon(Icons.note_outlined),
+              selectedIcon: const Icon(Icons.note),
+              label: Text(AppLocalizations.of(context).textNote),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.archive_outlined),
-              selectedIcon: Icon(Icons.archive),
-              label: Text('归档'),
+              icon: const Icon(Icons.archive_outlined),
+              selectedIcon: const Icon(Icons.archive),
+              label: Text(AppLocalizations.of(context).archive),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.label_outlined),
-              selectedIcon: Icon(Icons.label),
-              label: Text('标签'),
+              icon: const Icon(Icons.label_outlined),
+              selectedIcon: const Icon(Icons.label),
+              label: Text(AppLocalizations.of(context).tagManage),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: Text('设置'),
+              icon: const Icon(Icons.delete_outline),
+              selectedIcon: const Icon(Icons.delete),
+              label: Text(AppLocalizations.of(context).trash),
+            ),
+            NavigationRailDestination(
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings),
+              label: Text(AppLocalizations.of(context).settings),
             ),
           ],
         ),
@@ -189,7 +234,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? const ArchiveScreen()
                   : _selectedIndex == 2
                       ? const TagManageScreen()
-                      : const SettingsScreen(),
+                      : _selectedIndex == 3
+                          ? const TrashScreen()
+                          : const SettingsScreen(),
         ),
       ],
     );
@@ -210,13 +257,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ? TextField(
               controller: _searchController,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: '搜索笔记...',
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context).searchHint,
                 border: InputBorder.none,
               ),
               onChanged: _onSearchChanged,
             )
-          : const Text('备忘录'),
+          : Text(AppLocalizations.of(context).homeTitle),
       actions: [
         if (!_isSearching) ...[
           IconButton(
@@ -299,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 final note = provider.notes[index];
                 return NoteCard(
                   note: note,
+                  searchQuery: provider.searchQuery,
                   onTap: () => _openNote(
                     note: NoteEntity(
                       id: note.id,
@@ -346,6 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final note = provider.notes[index];
               return NoteCard(
                 note: note,
+                searchQuery: provider.searchQuery,
                 onTap: () => _openNote(
                   note: NoteEntity(
                     id: note.id,
@@ -368,6 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState(NoteProvider provider) {
+    final l10n = AppLocalizations.of(context);
     final isSearching = provider.searchQuery.isNotEmpty || provider.isFiltering;
     return Center(
       child: Column(
@@ -380,14 +430,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            isSearching ? '没有找到匹配的笔记' : '还没有笔记',
+            isSearching ? l10n.noNotes : l10n.emptyNotes,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            isSearching ? '试试其他搜索词或筛选条件' : '点击右下角 + 创建第一条笔记',
+            isSearching ? '' : l10n.emptyNotesHint,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -419,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
             FilledButton.icon(
               onPressed: () => provider.loadNotes(),
               icon: const Icon(Icons.refresh),
-              label: const Text('重试'),
+              label: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),

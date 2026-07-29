@@ -32,7 +32,7 @@ void main() {
       );
 
       final theme = AppTheme.lightTheme(customScheme);
-      expect(theme.colorScheme.primary, Colors.purple);
+      expect(theme.colorScheme.primary, customScheme.primary);
     });
   });
 }

@@ -13,6 +13,10 @@ class Notes extends Table {
   IntColumn get color => integer().withDefault(const Constant(0xFFFEF7E0))();
   BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  TextColumn? get deletedAt => text().nullable()();
+  IntColumn? get reminderTimestamp => integer().nullable()();
+  BoolColumn? get reminderFired => boolean().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
 
@@ -56,16 +60,38 @@ class NoteColorValues extends Table {
   Set<Column> get primaryKey => {value};
 }
 
-@DriftDatabase(tables: [Notes, Tags, NoteTags, ChecklistItems, NoteColorValues])
+class Attachments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get noteId => integer().references(Notes, #id)();
+  TextColumn get filePath => text()();
+  TextColumn get fileName => text()();
+  TextColumn get mimeType => text()();
+  IntColumn get fileSize => integer().withDefault(const Constant(0))();
+  TextColumn get createdAt => text()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [];
+}
+
+@DriftDatabase(tables: [
+  Notes,
+  Tags,
+  NoteTags,
+  ChecklistItems,
+  NoteColorValues,
+  Attachments,
+])
 class AppDatabase extends _$AppDatabase {
   static AppDatabase? _instance;
 
   AppDatabase._internal() : super(openConnection());
 
+  AppDatabase.testing(super.e);
+
   factory AppDatabase() => _instance ??= AppDatabase._internal();
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -73,10 +99,72 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await _seedNoteColors();
         },
-        onUpgrade: (m, from, to) async {},
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(notes, notes.isDeleted);
+            await m.addColumn(notes, notes.deletedAt);
+          }
+          if (from < 3) {
+            await customStatement('''
+              CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+                title, content, content=notes, content_rowid=id
+              );
+            ''');
+          }
+          if (from < 4) {
+            await m.addColumn(notes, notes.reminderTimestamp);
+            await m.addColumn(notes, notes.reminderFired);
+          }
+            await customStatement('''
+              CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+                INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+              END;
+            ''');
+            await customStatement('''
+              CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+                INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
+              END;
+            ''');
+            await customStatement('''
+              CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+                INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
+                INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+              END;
+            ''');
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA journal_mode=WAL');
           await customStatement('PRAGMA foreign_keys=ON');
+
+          // Ensure FTS5 table exists even if created via migration
+          if (details.wasCreated) {
+            try {
+              await customStatement('''
+                CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+                  title, content, content=notes, content_rowid=id
+                );
+              ''');
+              await customStatement('''
+                CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+                  INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+                END;
+              ''');
+              await customStatement('''
+                CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+                  INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
+                END;
+              ''');
+              await customStatement('''
+                CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+                  INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
+                  INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+                END;
+              ''');
+            } catch (_) {
+              // FTS5 not available on this platform, fallback to LIKE
+            }
+          }
         },
       );
 

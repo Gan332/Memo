@@ -13,13 +13,24 @@ class NoteRepository {
     bool? isPinned,
     String? noteType,
     int? tagId,
+    bool includeTrashed = false,
   }) async {
     var query = _db.select(_db.notes);
 
+    if (!includeTrashed) {
+      query = query..where((n) => n.isDeleted.equals(false));
+    }
+
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      query = query
-        ..where((n) =>
+      try {
+        final ftsIds = await _searchFtsIds(searchQuery);
+        if (ftsIds.isEmpty) return [];
+        query = query..where((n) => n.id.isIn(ftsIds));
+      } catch (_) {
+        // FTS5 not available, fallback to LIKE
+        query = query..where((n) =>
             n.title.like('%$searchQuery%') | n.content.like('%$searchQuery%'));
+      }
     }
 
     if (isArchived != null) {
@@ -75,8 +86,83 @@ class NoteRepository {
     return _db.update(_db.notes).replace(note);
   }
 
-  Future<int> deleteNote(int id) {
-    return (_db.delete(_db.notes)..where((n) => n.id.equals(id))).go();
+  Future<void> deleteNote(int id) async {
+    await (_db.update(_db.notes)..where((n) => n.id.equals(id))).write(
+      NotesCompanion(
+        isDeleted: const Value(true),
+        deletedAt: Value(DateTime.now().toIso8601String()),
+        updatedAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+  }
+
+  Future<void> restoreNote(int id) async {
+    await (_db.update(_db.notes)..where((n) => n.id.equals(id))).write(
+      NotesCompanion(
+        isDeleted: const Value(false),
+        deletedAt: const Value(null),
+        updatedAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+  }
+
+  Future<Set<int>> _searchFtsIds(String query) async {
+    String sanitize(String s) {
+      return s.replaceAllMapped(
+        RegExp(r'[\^\*\"\-\+\~\[\]\(\)]'),
+        (m) => '${m.group(0)}',
+      );
+    }
+
+    final ftsQuery = '"${sanitize(query)}"*';
+    final idRows = await _db.customSelect(
+      'SELECT rowid FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank',
+      variables: [Variable.withString(ftsQuery)],
+      readsFrom: {_db.notes},
+    ).get();
+
+    // Deduplicate to preserve order
+    final ordered = <int>[];
+    for (final r in idRows) {
+      final id = r.read<int>('rowid');
+      if (!ordered.contains(id)) ordered.add(id);
+    }
+    return ordered.toSet();
+  }
+
+  Future<void> permanentlyDeleteNote(int id) async {
+    // Remove tag associations first
+    await (_db.delete(_db.noteTags)..where((nt) => nt.noteId.equals(id))).go();
+    // Remove checklist items
+    await (_db.delete(_db.checklistItems)
+          ..where((ci) => ci.noteId.equals(id)))
+        .go();
+    // Remove attachments
+    await (_db.delete(_db.attachments)
+          ..where((a) => a.noteId.equals(id)))
+        .go();
+    await (_db.delete(_db.notes)..where((n) => n.id.equals(id))).go();
+  }
+
+  Future<void> emptyTrash() async {
+    final trashedNotes =
+        await (_db.select(_db.notes)..where((n) => n.isDeleted.equals(true)))
+            .get();
+    for (final note in trashedNotes) {
+      await permanentlyDeleteNote(note.id);
+    }
+  }
+
+  Future<List<NoteWithTags>> getTrashedNotes() async {
+    var query = _db.select(_db.notes)
+      ..where((n) => n.isDeleted.equals(true))
+      ..orderBy([(n) => OrderingTerm.desc(n.deletedAt)]);
+
+    final notes = await query.get();
+    return Future.wait(notes.map((n) async {
+      final tags = await getTagsForNote(n.id);
+      return NoteWithTags(note: n, tags: tags);
+    }).toList());
   }
 
   Future<void> togglePin(int id, bool currentPinned) async {
@@ -111,8 +197,11 @@ class NoteRepository {
     return results.map((row) => row.readTable(_db.tags)).toList();
   }
 
-  Future<int> getNoteCount({bool? isArchived}) async {
+  Future<int> getNoteCount({bool? isArchived, bool includeTrashed = false}) async {
     var countQuery = _db.select(_db.notes);
+    if (!includeTrashed) {
+      countQuery = countQuery..where((n) => n.isDeleted.equals(false));
+    }
     if (isArchived != null) {
       countQuery = countQuery..where((n) => n.isArchived.equals(isArchived));
     }

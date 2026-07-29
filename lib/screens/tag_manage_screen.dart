@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/providers/tag_provider.dart';
 import '../domain/entities/tag_entity.dart';
+import '../theme/app_colors.dart';
 
 class TagManageScreen extends StatefulWidget {
   const TagManageScreen({super.key});
@@ -43,16 +44,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: [
-                  0xFF42A5F5,
-                  0xFF66BB6A,
-                  0xFFFFA726,
-                  0xFFEF5350,
-                  0xFFAB47BC,
-                  0xFF26C6DA,
-                  0xFFEC407A,
-                  0xFF5C6BC0,
-                ].map((color) {
+                children: AppColors.tagPalette.map((color) {
                   final isSelected = selectedColor == color;
                   return GestureDetector(
                     onTap: () => setDialogState(() => selectedColor = color),
@@ -122,16 +114,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: [
-                  0xFF42A5F5,
-                  0xFF66BB6A,
-                  0xFFFFA726,
-                  0xFFEF5350,
-                  0xFFAB47BC,
-                  0xFF26C6DA,
-                  0xFFEC407A,
-                  0xFF5C6BC0,
-                ].map((color) {
+                children: AppColors.tagPalette.map((color) {
                   final isSelected = selectedColor == color;
                   return GestureDetector(
                     onTap: () => setDialogState(() => selectedColor = color),

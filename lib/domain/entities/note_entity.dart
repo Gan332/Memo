@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../utils/date_formatter.dart';
+
 enum NoteType { text, checklist }
 
 class NoteEntity {
@@ -10,6 +12,10 @@ class NoteEntity {
   final int color;
   final bool isPinned;
   final bool isArchived;
+  final bool isDeleted;
+  final DateTime? deletedAt;
+  final int? reminderTimestamp;
+  final bool? reminderFired;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +27,10 @@ class NoteEntity {
     this.color = 0xFFFEF7E0,
     this.isPinned = false,
     this.isArchived = false,
+    this.isDeleted = false,
+    this.deletedAt,
+    this.reminderTimestamp,
+    this.reminderFired,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +43,10 @@ class NoteEntity {
     int? color,
     bool? isPinned,
     bool? isArchived,
+    bool? isDeleted,
+    DateTime? deletedAt,
+    int? reminderTimestamp,
+    bool? reminderFired,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -44,6 +58,10 @@ class NoteEntity {
       color: color ?? this.color,
       isPinned: isPinned ?? this.isPinned,
       isArchived: isArchived ?? this.isArchived,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
+      reminderTimestamp: reminderTimestamp ?? this.reminderTimestamp,
+      reminderFired: reminderFired ?? this.reminderFired,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -54,17 +72,7 @@ class NoteEntity {
     return text.length > 80 ? '${text.substring(0, 80)}...' : text;
   }
 
-  String get formattedDate {
-    final now = DateTime.now();
-    final diff = now.difference(updatedAt);
-
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes} 分钟前';
-    if (diff.inDays < 1) return '${diff.inHours} 小时前';
-    if (diff.inDays < 7) return '${diff.inDays} 天前';
-
-    return '${updatedAt.month}/${updatedAt.day}';
-  }
+  String get formattedDate => formatRelativeDate(updatedAt);
 
   Color get backgroundColor => Color(color);
 }

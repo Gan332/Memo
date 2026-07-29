@@ -39,6 +39,9 @@ class BackupService {
     int skippedCount = 0;
     int failedCount = 0;
 
+    final noteIdMap = <int, int>{};
+    final tagIdMap = <int, int>{};
+
     await _db.transaction(() async {
       for (final note in backup.notes) {
         try {
@@ -60,9 +63,10 @@ class BackupService {
               isArchived: Value(note.isArchived),
               updatedAt: Value(note.updatedAt),
             ));
+            noteIdMap[note.id!] = existing.first.id!;
             updatedCount++;
           } else {
-            await _db.into(_db.notes).insert(NotesCompanion.insert(
+            final newId = await _db.into(_db.notes).insert(NotesCompanion.insert(
                   title: Value(note.title),
                   content: Value(note.content),
                   noteType: Value(note.noteType),
@@ -72,6 +76,7 @@ class BackupService {
                   createdAt: note.createdAt,
                   updatedAt: note.updatedAt,
                 ));
+            noteIdMap[note.id!] = newId;
             addedCount++;
           }
         } catch (e) {
@@ -85,12 +90,54 @@ class BackupService {
                 ..where((t) => t.name.equals(tag.name)))
               .get();
 
-          if (existing.isEmpty) {
-            await _db.into(_db.tags).insert(TagsCompanion.insert(
+          if (existing.isNotEmpty) {
+            tagIdMap[tag.id!] = existing.first.id!;
+          } else {
+            final newId = await _db.into(_db.tags).insert(TagsCompanion.insert(
                   name: tag.name,
                   color: Value(tag.color),
                   createdAt: tag.createdAt,
                 ));
+            tagIdMap[tag.id!] = newId;
+          }
+        } catch (e) {
+          failedCount++;
+        }
+      }
+
+      for (final noteTag in backup.noteTags) {
+        try {
+          final newNoteId = noteIdMap[noteTag.noteId];
+          final newTagId = tagIdMap[noteTag.tagId];
+          if (newNoteId != null && newTagId != null) {
+            final existing = await (_db.select(_db.noteTags)
+                  ..where((nt) =>
+                      nt.noteId.equals(newNoteId) & nt.tagId.equals(newTagId)))
+                .get();
+            if (existing.isEmpty) {
+              await _db.into(_db.noteTags).insert(
+                    NoteTagsCompanion.insert(
+                        noteId: newNoteId, tagId: newTagId),
+                  );
+            }
+          }
+        } catch (e) {
+          failedCount++;
+        }
+      }
+
+      for (final item in backup.checklistItems) {
+        try {
+          final newNoteId = noteIdMap[item.noteId];
+          if (newNoteId != null) {
+            await _db.into(_db.checklistItems).insert(
+                  ChecklistItemsCompanion.insert(
+                    noteId: newNoteId,
+                    itemText: item.itemText,
+                    isCompleted: Value(item.isCompleted),
+                    sortOrder: Value(item.sortOrder),
+                  ),
+                );
           }
         } catch (e) {
           failedCount++;

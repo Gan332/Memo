@@ -24,11 +24,18 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('归档笔记'),
-      ),
-      body: Consumer<NoteProvider>(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          context.read<NoteProvider>().setFilter(archived: null);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('归档笔记'),
+        ),
+        body: Consumer<NoteProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -74,6 +81,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             },
           );
         },
+      ),
       ),
     );
   }

@@ -83,6 +83,10 @@ class ChecklistProvider extends ChangeNotifier {
     await loadItems(noteId);
   }
 
+  Future<List<ChecklistItem>> getItems(int noteId) async {
+    return _checklistRepository.getItemsForNote(noteId);
+  }
+
   Future<void> deleteItemsForNote(int noteId) async {
     await _checklistRepository.deleteItemsForNote(noteId);
     _items = [];
@@ -111,7 +115,6 @@ class ChecklistProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _db.close();
     super.dispose();
   }
 }

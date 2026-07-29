@@ -84,9 +84,8 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: provider.items.length,
                 onReorder: (oldIndex, newIndex) {
-                  if (widget.noteId != null) {
-                    provider.reorder(oldIndex, newIndex, widget.noteId!);
-                  }
+                  if (widget.noteId == null) return;
+                  provider.reorder(oldIndex, newIndex, widget.noteId!);
                 },
                 itemBuilder: (context, index) {
                   final item = provider.items[index];
@@ -94,6 +93,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
                     key: ValueKey(item.id),
                     item: item,
                     onToggle: () {
+                      if (widget.noteId == null) return;
                       provider.toggleItem(
                         item.id!,
                         item.isCompleted,
@@ -101,6 +101,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
                       );
                     },
                     onDelete: () {
+                      if (widget.noteId == null) return;
                       provider.deleteItem(item.id!, widget.noteId!);
                     },
                     onEdit: (newText) {

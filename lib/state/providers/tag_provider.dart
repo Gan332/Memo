@@ -91,7 +91,6 @@ class TagProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _db.close();
     super.dispose();
   }
 }

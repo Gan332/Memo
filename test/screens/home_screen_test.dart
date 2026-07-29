@@ -4,19 +4,24 @@ import 'package:provider/provider.dart';
 import 'package:memo_app/screens/home_screen.dart';
 import 'package:memo_app/state/providers/note_provider.dart';
 import 'package:memo_app/state/providers/tag_provider.dart';
+import 'package:memo_app/state/providers/checklist_provider.dart';
 import 'package:memo_app/state/providers/theme_provider.dart';
+
+import '../helpers/test_database.dart';
 
 void main() {
   group('HomeScreen', () {
     Widget buildTestWidget() {
+      final db = createTestDatabase();
       return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
-          ChangeNotifierProvider(create: (_) => NoteProvider()),
-          ChangeNotifierProvider(create: (_) => TagProvider()),
+          ChangeNotifierProvider(create: (_) => NoteProvider(db: db)),
+          ChangeNotifierProvider(create: (_) => TagProvider(db: db)),
+          ChangeNotifierProvider(create: (_) => ChecklistProvider(db: db)),
         ],
-        child: const MaterialApp(
-          home: HomeScreen(),
+        child: MaterialApp(
+          home: const HomeScreen(),
         ),
       );
     }

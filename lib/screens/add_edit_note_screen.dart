@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
+import '../services/notification_service.dart';
+import '../services/export_service.dart';
+import '../l10n/app_localizations.dart';
 import '../state/providers/note_provider.dart';
 import '../state/providers/tag_provider.dart';
+import '../state/providers/checklist_provider.dart';
 import '../domain/entities/note_entity.dart';
 import '../domain/entities/tag_entity.dart';
 import '../theme/app_colors.dart';
+import '../utils/edit_history.dart';
 import '../widgets/tag_chip.dart';
 import '../widgets/checklist_editor.dart';
 
@@ -25,20 +31,35 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   late Color _selectedColor;
   NoteType _noteType = NoteType.text;
   List<int> _selectedTagIds = [];
+  late EditHistory _contentHistory;
+  bool _isUndoRedoing = false;
+  bool _isPreviewing = false;
+  int? _reminderTimestamp;
 
   bool get isEditing => widget.note != null;
 
   @override
   void initState() {
     super.initState();
+    _contentHistory = EditHistory(
+      initial: widget.note?.content ?? '',
+    );
     if (widget.note != null) {
       _titleController.text = widget.note!.title;
       _contentController.text = widget.note!.content;
       _selectedColor = Color(widget.note!.color);
       _noteType = widget.note!.noteType;
+      _reminderTimestamp = widget.note!.reminderTimestamp;
       _loadSelectedTags();
     } else {
       _selectedColor = const Color(0xFFFEF7E0);
+    }
+    _contentController.addListener(_onContentChanged);
+  }
+
+  void _onContentChanged() {
+    if (!_isUndoRedoing) {
+      _contentHistory.push(_contentController.text);
     }
   }
 
@@ -77,19 +98,48 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
         content: _noteType == NoteType.text ? content : '',
         noteType: _noteType,
         color: _selectedColor.value,
+        reminderTimestamp: _reminderTimestamp,
         updatedAt: now,
       );
       await provider.updateNote(updated);
+
+      // Schedule notification if reminder set
+      if (_reminderTimestamp != null) {
+        final reminderDate =
+            DateTime.fromMillisecondsSinceEpoch(_reminderTimestamp! * 1000);
+        await _scheduleReminderNotification(updated.id!, updated.title, reminderDate);
+      }
+
+      // Update tags for existing note
+      final oldTagIds = await tagProvider.getTagIdsForNote(widget.note!.id!);
+      for (final tagId in oldTagIds) {
+        if (!_selectedTagIds.contains(tagId)) {
+          await tagProvider.removeTagFromNote(widget.note!.id!, tagId);
+        }
+      }
+      for (final tagId in _selectedTagIds) {
+        if (!oldTagIds.contains(tagId)) {
+          await tagProvider.addTagToNote(widget.note!.id!, tagId);
+        }
+      }
     } else {
       final note = NoteEntity(
         title: title.isEmpty ? '无标题' : title,
         content: _noteType == NoteType.text ? content : '',
         noteType: _noteType,
         color: _selectedColor.value,
+        reminderTimestamp: _reminderTimestamp,
         createdAt: now,
         updatedAt: now,
       );
       final noteId = await provider.addNote(note);
+
+      // Schedule notification if reminder set
+      if (_reminderTimestamp != null) {
+        final reminderDate =
+            DateTime.fromMillisecondsSinceEpoch(_reminderTimestamp! * 1000);
+        await _scheduleReminderNotification(noteId, note.title, reminderDate);
+      }
 
       // Add tags to new note
       for (final tagId in _selectedTagIds) {
@@ -237,6 +287,16 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
         ).withOpacity(0.8),
         title: Text(isEditing ? '编辑笔记' : '新建笔记'),
         actions: [
+          if (_noteType == NoteType.text && !isEditing)
+            IconButton(
+              icon: Icon(
+                _isPreviewing ? Icons.edit : Icons.visibility,
+              ),
+              tooltip: _isPreviewing ? '编辑' : '预览',
+              onPressed: () {
+                setState(() => _isPreviewing = !_isPreviewing);
+              },
+            ),
           if (isEditing && widget.note!.noteType != 'checklist')
             IconButton(
               icon: const Icon(Icons.swap_horiz),
@@ -259,14 +319,30 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                   _noteType = _noteType == NoteType.text
                       ? NoteType.checklist
                       : NoteType.text;
+                  _isPreviewing = false;
                 });
               },
             ),
+          IconButton(
+            icon: Icon(
+              _reminderTimestamp != null
+                  ? Icons.notifications_active
+                  : Icons.notifications_none,
+            ),
+            tooltip: '提醒',
+            onPressed: _showReminderPicker,
+          ),
           IconButton(
             icon: const Icon(Icons.label_outlined),
             tooltip: '管理标签',
             onPressed: _showTagSelector,
           ),
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.file_download_outlined),
+              tooltip: '导出',
+              onPressed: _exportNote,
+            ),
           IconButton(
             icon: const Icon(Icons.save_outlined),
             tooltip: '保存',
@@ -329,25 +405,177 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                 ? ChecklistEditor(
                     noteId: widget.note?.id,
                   )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextField(
-                      controller: _contentController,
-                      maxLines: null,
-                      expands: true,
-                      textAlignVertical: TextAlignVertical.top,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                      decoration: const InputDecoration(
-                        hintText: '开始记录...',
-                        border: InputBorder.none,
-                        filled: false,
+                : _isPreviewing
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SingleChildScrollView(
+                          child: _contentController.text.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Text(
+                                    '暂无内容预览',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                )
+                              : MarkdownBody(
+                                  data: _contentController.text,
+                                  selectable: true,
+                                ),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          controller: _contentController,
+                          maxLines: null,
+                          expands: true,
+                          textAlignVertical: TextAlignVertical.top,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          decoration: const InputDecoration(
+                            hintText: '开始记录...',
+                            border: InputBorder.none,
+                            filled: false,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
           ),
+          if (_noteType == NoteType.text && !_isPreviewing)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    '字符: ${_contentController.text.length}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    '单词: ${_computeWordCount()}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _exportNote() async {
+    if (widget.note?.id == null) return;
+    final repo = context.read<NoteProvider>();
+    final noteWithTags = await repo.getNote(widget.note!.id!);
+    if (noteWithTags == null) return;
+
+    final exportService = ExportService();
+    final dir = await exportService.pickDirectory();
+    if (dir == null) return;
+
+    final note = noteWithTags.note;
+    final tagNames =
+        noteWithTags.tags.map((t) => t.name).toList();
+    final fileName =
+        '${exportService.sanitizeFileName(note.title.isNotEmpty ? note.title : '无标题')}.md';
+
+    String content;
+    if (note.noteType == 'checklist') {
+      // Fetch checklist items
+      final checklistProvider = context.read<ChecklistProvider>();
+      final items = await checklistProvider.getItems(note.id);
+      content = exportService.formatChecklistAsMarkdown(
+          note, items);
+    } else {
+      content = exportService.formatAsMarkdown(note, tagNames);
+    }
+
+    try {
+      await exportService.exportToFile(dir, fileName, content);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出成功：$fileName')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败：$e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _scheduleReminderNotification(
+      int noteId, String title, DateTime date) async {
+    await NotificationService().scheduleNotification(
+      id: noteId,
+      title: '提醒: $title',
+      body: '笔记「$title」提醒',
+      scheduledDate: date,
+    );
+  }
+
+  int _computeWordCount() {
+    final text = _contentController.text.trim();
+    if (text.isEmpty) return 0;
+    return text.split(RegExp(r'\s+')).length;
+  }
+
+  Future<void> _showReminderPicker() async {
+    final now = DateTime.now();
+    final initialDate = _reminderTimestamp != null
+        ? DateTime.fromMillisecondsSinceEpoch(_reminderTimestamp! * 1000)
+        : now.add(const Duration(hours: 1));
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      helpText: '设置提醒日期',
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+      helpText: '设置提醒时间',
+    );
+    if (time == null || !mounted) return;
+
+    final reminderDate = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
+    if (reminderDate.isBefore(now)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('提醒时间不能早于当前时间')),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _reminderTimestamp =
+            reminderDate.millisecondsSinceEpoch ~/ 1000;
+      });
+    }
   }
 
   void _showConvertConfirmDialog() async {

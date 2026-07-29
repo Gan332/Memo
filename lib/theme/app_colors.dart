@@ -29,6 +29,17 @@ class AppColors {
     '白色',
   ];
 
+  static const List<int> tagPalette = [
+    0xFF42A5F5,
+    0xFF66BB6A,
+    0xFFFFA726,
+    0xFFEF5350,
+    0xFFAB47BC,
+    0xFF26C6DA,
+    0xFFEC407A,
+    0xFF5C6BC0,
+  ];
+
   static Color backgroundColor(int colorValue, Brightness brightness) {
     final color = Color(colorValue);
     if (brightness == Brightness.dark) {
