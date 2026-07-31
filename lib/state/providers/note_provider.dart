@@ -28,6 +28,7 @@ class NoteProvider extends ChangeNotifier {
   SortBy _sortBy = SortBy.updatedAt;
   bool _sortAscending = false;
   Timer? _debounceTimer;
+  bool _isDisposed = false;
 
   final Set<int> _selectedNoteIds = {};
   bool _isMultiSelectMode = false;
@@ -68,6 +69,7 @@ class NoteProvider extends ChangeNotifier {
     final sortIndex = prefs.getInt('sortBy') ?? 0;
     _sortBy = SortBy.values[sortIndex];
     _sortAscending = prefs.getBool('sortAscending') ?? false;
+    if (_isDisposed) return;
     notifyListeners();
   }
 
@@ -135,7 +137,7 @@ class NoteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setFilter({
+  Future<void> setFilter({
     bool? archived,
     bool? pinned,
     String? noteType,
@@ -147,17 +149,17 @@ class NoteProvider extends ChangeNotifier {
     _filterNoteType = noteType;
     _filterTagId = tagId;
     _filterHasReminder = hasReminder;
-    loadNotes();
+    return loadNotes();
   }
 
-  void clearFilters() {
+  Future<void> clearFilters() {
     _filterArchived = null;
     _filterPinned = null;
     _filterNoteType = null;
     _filterTagId = null;
     _filterHasReminder = null;
     _searchQuery = '';
-    loadNotes();
+    return loadNotes();
   }
 
   Future<NoteWithTags?> getNote(int id) async {
@@ -386,6 +388,7 @@ class NoteProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _debounceTimer?.cancel();
     super.dispose();
   }

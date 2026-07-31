@@ -10,6 +10,7 @@ import 'package:memo_app/screens/add_edit_note_screen.dart';
 import 'package:memo_app/state/providers/checklist_provider.dart';
 import 'package:memo_app/state/providers/note_provider.dart';
 import 'package:memo_app/state/providers/tag_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/test_database.dart';
 
@@ -45,6 +46,9 @@ Widget buildEditor({
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+
   group('AddEditNoteScreen', () {
     testWidgets('formatting toolbar hides when content loses focus', (
       tester,
@@ -70,7 +74,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(buildEditor());
+      await tester.pump();
       final content = find.byType(TextField).at(1);
+      await tester.tap(content);
+      await tester.pump();
 
       Future<void> apply(
         IconData icon,
@@ -134,6 +141,7 @@ void main() {
           note: note,
         ),
       );
+      await tester.pump();
       await tester.enterText(
         find.byType(TextField).at(1),
         'Updated Content',

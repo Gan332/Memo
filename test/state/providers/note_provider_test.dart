@@ -2,10 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:memo_app/state/providers/note_provider.dart';
 import 'package:memo_app/data/database/app_database.dart';
 import 'package:memo_app/domain/entities/note_entity.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/test_database.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+
   late AppDatabase db;
   late NoteProvider provider;
 
@@ -81,7 +85,7 @@ void main() {
       await provider.addNote(active);
       await provider.addNote(archived);
 
-      provider.setFilter(archived: false);
+      await provider.setFilter(archived: false);
       expect(provider.notes.length, 1);
       expect(provider.notes.first.title, 'Active');
     });
@@ -106,7 +110,7 @@ void main() {
       await provider.addNote(withReminder);
       await provider.addNote(withoutReminder);
 
-      provider.setFilter(hasReminder: true);
+      await provider.setFilter(hasReminder: true);
       expect(provider.isFiltering, true);
       await provider.loadNotes();
 
@@ -126,10 +130,10 @@ void main() {
 
       await provider.addNote(note);
 
-      provider.setFilter(archived: false);
+      await provider.setFilter(archived: false);
       expect(provider.filterArchived, false);
 
-      provider.clearFilters();
+      await provider.clearFilters();
       expect(provider.filterArchived, isNull);
       expect(provider.filterPinned, isNull);
       expect(provider.filterNoteType, isNull);
@@ -199,7 +203,7 @@ void main() {
     test('isFiltering returns true when filters are set', () async {
       expect(provider.isFiltering, false);
 
-      provider.setFilter(archived: true);
+      await provider.setFilter(archived: true);
       expect(provider.isFiltering, true);
     });
   });
