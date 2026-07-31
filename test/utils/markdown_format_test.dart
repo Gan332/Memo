@@ -49,5 +49,17 @@ void main() {
       expect(bullet.text, '- hello');
       expect(bullet.cursorOffset, 7);
     });
+
+    test('insertLinePrefix handles cursor at line start', () {
+      final result = MarkdownFormat.insertLinePrefix(
+        text: 'hello',
+        selectionOffset: 0,
+        prefix: '# ',
+        suppressIfAlreadyPrefixed: true,
+      );
+
+      expect(result.text, '# hello');
+      expect(result.cursorOffset, 2);
+    });
   });
 }

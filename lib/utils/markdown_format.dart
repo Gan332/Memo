@@ -41,7 +41,9 @@ class MarkdownFormat {
     required String prefix,
     required bool suppressIfAlreadyPrefixed,
   }) {
-    final lineStart = text.lastIndexOf('\n', selectionOffset - 1) + 1;
+    final lineStart = selectionOffset == 0
+        ? 0
+        : text.lastIndexOf('\n', selectionOffset - 1) + 1;
     final linePrefix = text.substring(lineStart, selectionOffset);
     final shouldAdd = !(suppressIfAlreadyPrefixed && linePrefix.startsWith('#'));
     final newText =
