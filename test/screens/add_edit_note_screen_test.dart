@@ -91,7 +91,10 @@ void main() {
           extentOffset: 5,
         );
         await tester.pump();
-        await tester.tap(find.byIcon(icon));
+        final button = find.byIcon(icon);
+        await tester.ensureVisible(button);
+        await tester.pump();
+        await tester.tap(button);
         await tester.pump();
 
         final updated = tester.widget<TextField>(content);
