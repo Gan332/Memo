@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/providers/checklist_provider.dart';
 import '../domain/entities/checklist_entity.dart';
 

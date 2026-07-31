@@ -13,6 +13,7 @@ import '../l10n/app_localizations.dart';
 import '../services/notification_service.dart';
 import '../services/export_service.dart';
 import '../services/attachment_service.dart';
+import '../data/database/app_database.dart';
 import '../state/providers/note_provider.dart';
 import '../state/providers/tag_provider.dart';
 import '../state/providers/checklist_provider.dart';
@@ -48,7 +49,6 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
   bool _didAutoSave = false;
   final ImagePicker _imagePicker = ImagePicker();
   List<Attachment> _attachments = [];
-  bool _attachmentsLoading = false;
 
   bool get isEditing => widget.note != null;
 
@@ -167,18 +167,16 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
 
   Future<void> _loadAttachments() async {
     if (widget.note?.id == null) return;
-    setState(() => _attachmentsLoading = true);
     try {
       final service = AttachmentService();
       final attachments = await service.getAttachmentsForNote(widget.note!.id!);
       if (mounted) {
-        setState(() {
-          _attachments = attachments;
-          _attachmentsLoading = false;
-        });
+        setState(() => _attachments = attachments);
       }
     } catch (_) {
-      if (mounted) setState(() => _attachmentsLoading = false);
+      if (mounted) {
+        setState(() => _attachments = const []);
+      }
     }
   }
 
@@ -282,14 +280,13 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
   }
 
   void _shareNote() {
-    final loc = AppLocalizations.of(context);
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
     final text = title.isEmpty
         ? content
         : '$title\n\n$content';
     if (text.isEmpty && _noteType != NoteType.checklist) return;
-    SharePlus.instance.share(ShareParams(text: text));
+    unawaited(Share.share(text));
   }
 
   Widget _buildAttachmentsSection() {
@@ -338,7 +335,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               _buildAttachmentPlaceholder(attachment),
-                        ),
+                        )
                       else
                         _buildAttachmentPlaceholder(attachment),
                       Positioned(
@@ -832,7 +829,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
                 setState(() => _isPreviewing = !_isPreviewing);
               },
             ),
-          if (isEditing && widget.note!.noteType != 'checklist')
+          if (isEditing && widget.note!.noteType != NoteType.checklist)
             IconButton(
               icon: const Icon(Icons.swap_horiz),
               tooltip: l10n.convertToChecklist,
