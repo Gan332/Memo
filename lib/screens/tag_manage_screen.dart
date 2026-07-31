@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/providers/tag_provider.dart';
 import '../domain/entities/tag_entity.dart';
 import '../theme/app_colors.dart';
@@ -29,14 +30,14 @@ class _TagManageScreenState extends State<TagManageScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('新建标签'),
+          title: Text(AppLocalizations.of(context).newTag),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  hintText: '标签名称',
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context).tagNameHint,
                 ),
                 autofocus: true,
               ),
@@ -74,7 +75,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('取消'),
+              child: Text(AppLocalizations.of(context).cancel),
             ),
             TextButton(
               onPressed: () {
@@ -86,7 +87,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
                   Navigator.of(ctx).pop();
                 }
               },
-              child: const Text('创建'),
+              child: Text(AppLocalizations.of(context).create),
             ),
           ],
         ),
@@ -102,13 +103,13 @@ class _TagManageScreenState extends State<TagManageScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('编辑标签'),
+          title: Text(AppLocalizations.of(context).editTag),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(hintText: '标签名称'),
+                decoration: InputDecoration(hintText: AppLocalizations.of(context).tagNameHint),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -144,7 +145,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('取消'),
+              child: Text(AppLocalizations.of(context).cancel),
             ),
             TextButton(
               onPressed: () {
@@ -156,7 +157,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
                   Navigator.of(ctx).pop();
                 }
               },
-              child: const Text('保存'),
+              child: Text(AppLocalizations.of(context).save),
             ),
           ],
         ),
@@ -168,19 +169,19 @@ class _TagManageScreenState extends State<TagManageScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除标签'),
-        content: Text('确定要删除标签「${tag.name}」吗？\n标签将被移除，但关联的笔记不会被删除。'),
+        title: Text(AppLocalizations.of(context).deleteTagTitle),
+        content: Text(AppLocalizations.of(context).deleteTagConfirm(tag.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('删除'),
+            child: Text(AppLocalizations.of(context).delete),
           ),
         ],
       ),
@@ -195,7 +196,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('管理标签'),
+        title: Text(AppLocalizations.of(context).tagManage),
       ),
       body: Consumer<TagProvider>(
         builder: (context, provider, _) {
@@ -215,14 +216,14 @@ class _TagManageScreenState extends State<TagManageScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '还没有标签',
+                    AppLocalizations.of(context).emptyTags,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '点击右下角 + 创建第一个标签',
+                    AppLocalizations.of(context).emptyTagsHint,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -232,39 +233,52 @@ class _TagManageScreenState extends State<TagManageScreen> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: provider.tags.length,
-            itemBuilder: (context, index) {
-              final tag = provider.tags[index];
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: tag.backgroundColor,
-                    child: Icon(
-                      Icons.label,
-                      color: Colors.white,
-                      size: 20,
+          return FutureBuilder<Map<int, int>>(
+            future: provider.getNoteCounts(),
+            builder: (context, snapshot) {
+              final counts = snapshot.data ?? {};
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: provider.tags.length,
+                itemBuilder: (context, index) {
+                  final tag = provider.tags[index];
+                  final count = counts[tag.id!] ?? 0;
+                  return Card(
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: tag.backgroundColor,
+                        child: Icon(
+                          Icons.label,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(tag.name),
+                      subtitle: Text(
+                        AppLocalizations.of(context).noteCount(count),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _showEditTagDialog(tag),
+                            tooltip: AppLocalizations.of(context).edit,
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline,
+                                color: Theme.of(context).colorScheme.error),
+                            onPressed: () => _confirmDeleteTag(tag),
+                            tooltip: AppLocalizations.of(context).delete,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  title: Text(tag.name),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => _showEditTagDialog(tag),
-                        tooltip: '编辑',
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline,
-                            color: Theme.of(context).colorScheme.error),
-                        onPressed: () => _confirmDeleteTag(tag),
-                        tooltip: '删除',
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                },
               );
             },
           );
@@ -272,7 +286,7 @@ class _TagManageScreenState extends State<TagManageScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTagDialog,
-        tooltip: '新建标签',
+        tooltip: AppLocalizations.of(context).newTag,
         child: const Icon(Icons.add),
       ),
     );

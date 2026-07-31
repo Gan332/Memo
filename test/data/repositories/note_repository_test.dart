@@ -93,6 +93,30 @@ void main() {
       expect(archived.first.note.title, 'Archived');
     });
 
+    test('getNotes filters by hasReminder', () async {
+      await repository.insertNote(NotesCompanion.insert(
+        title: Value('With Reminder'),
+        content: Value(''),
+        reminderTimestamp: const Value(1800000000),
+        createdAt: '2025-01-01T00:00:00',
+        updatedAt: '2025-01-01T00:00:00',
+      ));
+      await repository.insertNote(NotesCompanion.insert(
+        title: Value('No Reminder'),
+        content: Value(''),
+        createdAt: '2025-01-02T00:00:00',
+        updatedAt: '2025-01-02T00:00:00',
+      ));
+
+      final withReminder = await repository.getNotes(hasReminder: true);
+      expect(withReminder.length, 1);
+      expect(withReminder.first.note.title, 'With Reminder');
+
+      final withoutReminder = await repository.getNotes(hasReminder: false);
+      expect(withoutReminder.length, 1);
+      expect(withoutReminder.first.note.title, 'No Reminder');
+    });
+
     test('togglePin changes pin status', () async {
       final id = await repository.insertNote(NotesCompanion.insert(
         title: Value('Pinned'),

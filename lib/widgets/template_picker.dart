@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/models/note_template.dart';
+import '../l10n/app_localizations.dart';
 
 class TemplatePicker extends StatelessWidget {
   final void Function(NoteTemplate template) onSelect;
@@ -16,7 +17,7 @@ class TemplatePicker extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '新建笔记',
+            AppLocalizations.of(context).newNoteFromTemplate,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),

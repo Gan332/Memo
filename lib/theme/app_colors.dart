@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class AppColors {
@@ -43,20 +45,34 @@ class AppColors {
   static Color backgroundColor(int colorValue, Brightness brightness) {
     final color = Color(colorValue);
     if (brightness == Brightness.dark) {
-      return Color.lerp(color, Colors.black, 0.6)!;
+      // Lerp towards a dark surface tone instead of pure black,
+      // preserving more of the original hue while dimming sufficiently.
+      const darkSurface = Color(0xFF1C1B1F);
+      return Color.lerp(color, darkSurface, 0.45)!;
     }
     return color;
   }
 
   static Color onBackgroundColor(int colorValue, Brightness brightness) {
-    final luminance = _luminance(Color(colorValue));
+    final relativeLuminance = _relativeLuminance(Color(colorValue));
     if (brightness == Brightness.dark) {
-      return luminance > 0.3 ? Colors.black : Colors.white;
+      return relativeLuminance > 0.3 ? Colors.black : Colors.white;
     }
-    return luminance > 0.5 ? Colors.black87 : Colors.white;
+    return relativeLuminance > 0.5 ? Colors.black87 : Colors.white;
   }
 
-  static double _luminance(Color color) {
-    return (0.299 * color.r + 0.587 * color.g + 0.114 * color.b);
+  /// WCAG 2.1 relative luminance: https://www.w3.org/WAI/GL/wiki/Relative_luminance
+  static double _relativeLuminance(Color color) {
+    final r = _linearize(color.r);
+    final g = _linearize(color.g);
+    final b = _linearize(color.b);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  static double _linearize(double channel) {
+    if (channel <= 0.04045) {
+      return channel / 12.92;
+    }
+    return math.pow((channel + 0.055) / 1.055, 2.4).toDouble();
   }
 }

@@ -120,8 +120,8 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
               Expanded(
                 child: TextField(
                   controller: _newItemController,
-                  decoration: const InputDecoration(
-                    hintText: '添加清单项...',
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context).addChecklistItem,
                     border: OutlineInputBorder(),
                   ),
                   onSubmitted: (_) => _addItem(),
@@ -213,13 +213,13 @@ class _ChecklistTileState extends State<_ChecklistTile> {
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
               onPressed: () => setState(() => _isEditing = true),
-              tooltip: '编辑',
+              tooltip: AppLocalizations.of(context).edit,
             ),
             IconButton(
               icon: Icon(Icons.delete_outline,
                   size: 20, color: Theme.of(context).colorScheme.error),
               onPressed: widget.onDelete,
-              tooltip: '删除',
+              tooltip: AppLocalizations.of(context).delete,
             ),
             const Icon(Icons.drag_handle),
           ],

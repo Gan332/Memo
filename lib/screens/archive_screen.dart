@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../data/database/app_database.dart';
+import '../domain/entities/note_entity.dart';
+import '../l10n/app_localizations.dart';
+import '../screens/add_edit_note_screen.dart';
 import '../state/providers/note_provider.dart';
 import '../theme/app_colors.dart';
 
@@ -33,7 +36,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('归档笔记'),
+          title: Text(AppLocalizations.of(context).archiveTitle),
         ),
         body: Consumer<NoteProvider>(
         builder: (context, provider, _) {
@@ -53,7 +56,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '没有归档笔记',
+                    AppLocalizations.of(context).emptyArchive,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -70,6 +73,25 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               final note = provider.archivedNotes[index];
               return _ArchiveNoteCard(
                 note: note,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AddEditNoteScreen(
+                        note: NoteEntity(
+                          id: note.id,
+                          title: note.title,
+                          content: note.content,
+                          noteType: NoteType.values.byName(note.noteType),
+                          color: note.color,
+                          isPinned: note.isPinned,
+                          isArchived: note.isArchived,
+                          createdAt: DateTime.parse(note.createdAt),
+                          updatedAt: DateTime.parse(note.updatedAt),
+                        ),
+                      ),
+                    ),
+                  );
+                },
                 onRestore: () {
                   provider.toggleArchive(note.id, true);
                   _showUndoSnackBar(context, note);
@@ -89,9 +111,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   void _showUndoSnackBar(BuildContext context, NoteRow note) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已恢复「${note.title}」'),
+        content: Text(AppLocalizations.of(context).restoredNote(note.title)),
         action: SnackBarAction(
-          label: '撤销',
+          label: AppLocalizations.of(context).undo,
           onPressed: () {
             context.read<NoteProvider>().toggleArchive(note.id, false);
           },
@@ -104,11 +126,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
 class _ArchiveNoteCard extends StatelessWidget {
   final NoteRow note;
+  final VoidCallback onTap;
   final VoidCallback onRestore;
   final VoidCallback onDelete;
 
   const _ArchiveNoteCard({
     required this.note,
+    required this.onTap,
     required this.onRestore,
     required this.onDelete,
   });
@@ -131,20 +155,22 @@ class _ArchiveNoteCard extends StatelessWidget {
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
               icon: Icons.restore,
-              label: '恢复',
+              label: AppLocalizations.of(context).restore,
             ),
             SlidableAction(
               onPressed: (_) => onDelete(),
               backgroundColor: Theme.of(context).colorScheme.errorContainer,
               foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
               icon: Icons.delete_outline,
-              label: '删除',
+              label: AppLocalizations.of(context).delete,
             ),
           ],
         ),
         child: Card(
           color: color,
-          child: Padding(
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +194,7 @@ class _ArchiveNoteCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 8),
                 Text(
-                  '归档于 ${note.updatedAt}',
+                  AppLocalizations.of(context).archivedAt(note.updatedAt),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.outline,
                       ),
@@ -178,6 +204,7 @@ class _ArchiveNoteCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

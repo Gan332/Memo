@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/date_formatter.dart';
-
 enum NoteType { text, checklist }
 
 class NoteEntity {
@@ -71,8 +69,6 @@ class NoteEntity {
     final text = content.replaceAll(RegExp(r'\s+'), ' ');
     return text.length > 80 ? '${text.substring(0, 80)}...' : text;
   }
-
-  String get formattedDate => formatRelativeDate(updatedAt);
 
   Color get backgroundColor => Color(color);
 }

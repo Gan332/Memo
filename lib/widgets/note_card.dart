@@ -231,7 +231,7 @@ class NoteCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      formatRelativeDateFromIso(note.updatedAt),
+                      formatRelativeDateFromIso(note.updatedAt, l10n),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: onColor.withOpacity(0.5),
                           ),
@@ -307,7 +307,7 @@ class NoteCard extends StatelessWidget {
                 children: [
                   Text(
                     note.deletedAt != null
-                        ? '${AppLocalizations.of(context).deletedAt} ${formatRelativeDateFromIso(note.deletedAt!)}'
+                        ? '${AppLocalizations.of(context).deletedAt} ${formatRelativeDateFromIso(note.deletedAt!, AppLocalizations.of(context))}'
                         : '',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: onColor.withOpacity(0.5),

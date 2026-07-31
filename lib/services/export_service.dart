@@ -54,7 +54,7 @@ class ExportService {
 
   Future<String?> pickDirectory() async {
     final result = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: '选择导出目录',
+      dialogTitle: 'Select export directory',
     );
     return result;
   }

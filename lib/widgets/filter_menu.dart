@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/providers/note_provider.dart';
+import '../state/providers/tag_provider.dart';
+
+typedef NoteFilterCallback =
+    void Function(bool? archived, bool? pinned, String? noteType, int? tagId,
+        bool? hasReminder);
 
 class FilterMenu extends StatefulWidget {
-  final Function(bool? archived, bool? pinned, String? noteType, int? tagId)
-      onApplyFilter;
+  final NoteFilterCallback onApplyFilter;
   final VoidCallback onClearFilter;
 
   const FilterMenu({
@@ -24,6 +28,7 @@ class _FilterMenuState extends State<FilterMenu> {
   bool? _pinned;
   String? _noteType;
   int? _tagId;
+  bool? _hasReminder;
   late SortBy _sortBy;
   late bool _sortAscending;
 
@@ -31,6 +36,11 @@ class _FilterMenuState extends State<FilterMenu> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final provider = context.read<NoteProvider>();
+    _archived = provider.filterArchived;
+    _pinned = provider.filterPinned;
+    _noteType = provider.filterNoteType;
+    _tagId = provider.filterTagId;
+    _hasReminder = provider.filterHasReminder;
     _sortBy = provider.sortBy;
     _sortAscending = provider.sortAscending;
   }
@@ -61,6 +71,13 @@ class _FilterMenuState extends State<FilterMenu> {
                 },
               ),
               FilterChip(
+                label: Text(l10n.hasReminder),
+                selected: _hasReminder == true,
+                onSelected: (selected) {
+                  setState(() => _hasReminder = selected ? true : null);
+                },
+              ),
+              FilterChip(
                 label: Text(l10n.textNote),
                 selected: _noteType == 'text',
                 onSelected: (selected) {
@@ -75,6 +92,43 @@ class _FilterMenuState extends State<FilterMenu> {
                 },
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Consumer<TagProvider>(
+            builder: (context, tagProvider, _) {
+              if (tagProvider.tags.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.tag,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: tagProvider.tags.map((tag) {
+                      return FilterChip(
+                        label: Text(tag.name),
+                        selected: _tagId == tag.id,
+                        onSelected: (selected) {
+                          setState(
+                              () => _tagId = selected ? tag.id! : null);
+                        },
+                        avatar: CircleAvatar(
+                          backgroundColor: tag.backgroundColor,
+                          child: const Icon(Icons.label,
+                              color: Colors.white, size: 14),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
           Text(
@@ -129,7 +183,13 @@ class _FilterMenuState extends State<FilterMenu> {
                   context
                       .read<NoteProvider>()
                       .setSortBy(_sortBy, ascending: _sortAscending);
-                  widget.onApplyFilter(_archived, _pinned, _noteType, _tagId);
+                  widget.onApplyFilter(
+                    _archived,
+                    _pinned,
+                    _noteType,
+                    _tagId,
+                    _hasReminder,
+                  );
                 },
                 child: Text(l10n.applyFilters),
               ),

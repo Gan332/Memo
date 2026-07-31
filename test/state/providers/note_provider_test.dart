@@ -86,6 +86,35 @@ void main() {
       expect(provider.notes.first.title, 'Active');
     });
 
+    test('setFilter filters by hasReminder', () async {
+      final now = DateTime.now();
+      final withReminder = NoteEntity(
+        title: 'With Reminder',
+        content: '',
+        reminderTimestamp: 1800000000,
+        reminderFired: false,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final withoutReminder = NoteEntity(
+        title: 'No Reminder',
+        content: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await provider.addNote(withReminder);
+      await provider.addNote(withoutReminder);
+
+      provider.setFilter(hasReminder: true);
+      expect(provider.isFiltering, true);
+      await provider.loadNotes();
+
+      expect(provider.notes.length, 1);
+      expect(provider.notes.first.title, 'With Reminder');
+      expect(provider.notes.first.reminderTimestamp, 1800000000);
+    });
+
     test('clearFilters resets all filters', () async {
       final now = DateTime.now();
       final note = NoteEntity(
@@ -105,6 +134,7 @@ void main() {
       expect(provider.filterPinned, isNull);
       expect(provider.filterNoteType, isNull);
       expect(provider.filterTagId, isNull);
+      expect(provider.filterHasReminder, isNull);
       expect(provider.searchQuery, '');
     });
 

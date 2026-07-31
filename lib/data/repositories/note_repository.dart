@@ -13,6 +13,7 @@ class NoteRepository {
     bool? isPinned,
     String? noteType,
     int? tagId,
+    bool? hasReminder,
     bool includeTrashed = false,
   }) async {
     var query = _db.select(_db.notes);
@@ -43,6 +44,14 @@ class NoteRepository {
 
     if (noteType != null) {
       query = query..where((n) => n.noteType.equals(noteType));
+    }
+
+    if (hasReminder != null) {
+      if (hasReminder) {
+        query = query..where((n) => n.reminderTimestamp.isNotNull());
+      } else {
+        query = query..where((n) => n.reminderTimestamp.isNull());
+      }
     }
 
     query = query

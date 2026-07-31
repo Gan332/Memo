@@ -1,10 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../l10n/app_localizations.dart';
 import '../services/notification_service.dart';
 import '../services/export_service.dart';
+import '../services/attachment_service.dart';
 import '../state/providers/note_provider.dart';
 import '../state/providers/tag_provider.dart';
 import '../state/providers/checklist_provider.dart';
@@ -12,6 +20,7 @@ import '../domain/entities/note_entity.dart';
 import '../domain/entities/tag_entity.dart';
 import '../theme/app_colors.dart';
 import '../utils/edit_history.dart';
+import '../utils/markdown_format.dart';
 import '../widgets/tag_chip.dart';
 import '../widgets/checklist_editor.dart';
 
@@ -24,7 +33,7 @@ class AddEditNoteScreen extends StatefulWidget {
   State<AddEditNoteScreen> createState() => _AddEditNoteScreenState();
 }
 
-class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
+class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindingObserver {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   late Color _selectedColor;
@@ -34,12 +43,19 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   bool _isUndoRedoing = false;
   bool _isPreviewing = false;
   int? _reminderTimestamp;
+  final _contentFocusNode = FocusNode();
+  Timer? _autoSaveTimer;
+  bool _didAutoSave = false;
+  final ImagePicker _imagePicker = ImagePicker();
+  List<Attachment> _attachments = [];
+  bool _attachmentsLoading = false;
 
   bool get isEditing => widget.note != null;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _contentHistory = EditHistory(
       initial: widget.note?.content ?? '',
     );
@@ -50,15 +66,93 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       _noteType = widget.note!.noteType;
       _reminderTimestamp = widget.note!.reminderTimestamp;
       _loadSelectedTags();
+      _loadAttachments();
     } else {
       _selectedColor = const Color(0xFFFEF7E0);
     }
     _contentController.addListener(_onContentChanged);
+    _titleController.addListener(_onTitleChanged);
+    _contentFocusNode.addListener(_onContentFocusChanged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _performAutoSave();
+    }
+  }
+
+  void _onContentFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onTitleChanged() {
+    if (!_isUndoRedoing) {
+      _scheduleAutoSave();
+    }
+  }
+
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 5), _performAutoSave);
+  }
+
+  void _performAutoSave() {
+    _autoSaveTimer?.cancel();
+    if (!mounted || !isEditing) return;
+    if (isEditing) {
+      final loc = AppLocalizations.of(context);
+      final title = _titleController.text.trim();
+      final content = _contentController.text.trim();
+      final now = DateTime.now();
+      final provider = context.read<NoteProvider>();
+      final updated = widget.note!.copyWith(
+        title: title.isEmpty ? loc.untitled : title,
+        content: _noteType == NoteType.text ? content : '',
+        noteType: _noteType,
+        color: _selectedColor.value,
+        updatedAt: now,
+      );
+      provider.updateNote(updated);
+      setState(() => _didAutoSave = true);
+    }
   }
 
   void _onContentChanged() {
     if (!_isUndoRedoing) {
       _contentHistory.push(_contentController.text);
+      if (isEditing) {
+        _scheduleAutoSave();
+      }
+    }
+  }
+
+  void _undo() {
+    final prev = _contentHistory.undo();
+    if (prev != null) {
+      setState(() {
+        _isUndoRedoing = true;
+        _contentController.text = prev;
+        _contentController.selection = TextSelection.fromPosition(
+          TextPosition(offset: prev.length),
+        );
+        _isUndoRedoing = false;
+      });
+    }
+  }
+
+  void _redo() {
+    final next = _contentHistory.redo();
+    if (next != null) {
+      setState(() {
+        _isUndoRedoing = true;
+        _contentController.text = next;
+        _contentController.selection = TextSelection.fromPosition(
+          TextPosition(offset: next.length),
+        );
+        _isUndoRedoing = false;
+      });
     }
   }
 
@@ -71,14 +165,431 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
     }
   }
 
+  Future<void> _loadAttachments() async {
+    if (widget.note?.id == null) return;
+    setState(() => _attachmentsLoading = true);
+    try {
+      final service = AttachmentService();
+      final attachments = await service.getAttachmentsForNote(widget.note!.id!);
+      if (mounted) {
+        setState(() {
+          _attachments = attachments;
+          _attachmentsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _attachmentsLoading = false);
+    }
+  }
+
+  Future<void> _addAttachmentFromCamera() async {
+    final file = await _imagePicker.pickImage(source: ImageSource.camera);
+    if (file == null || widget.note?.id == null) return;
+    final service = AttachmentService();
+    await service.addAttachment(
+      noteId: widget.note!.id!,
+      sourcePath: file.path,
+      fileName: file.name,
+      mimeType: 'image/jpeg',
+    );
+    await _loadAttachments();
+  }
+
+  Future<void> _addAttachmentFromGallery() async {
+    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (file == null || widget.note?.id == null) return;
+    final service = AttachmentService();
+    await service.addAttachment(
+      noteId: widget.note!.id!,
+      sourcePath: file.path,
+      fileName: file.name,
+      mimeType: 'image/jpeg',
+    );
+    await _loadAttachments();
+  }
+
+  Future<void> _addAttachmentFromFile() async {
+    if (widget.note?.id == null) return;
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.path == null) return;
+    final service = AttachmentService();
+    await service.addAttachment(
+      noteId: widget.note!.id!,
+      sourcePath: file.path!,
+      fileName: file.name,
+      mimeType: file.extension ?? 'application/octet-stream',
+    );
+    await _loadAttachments();
+  }
+
+  Future<void> _deleteAttachment(int attachmentId) async {
+    final service = AttachmentService();
+    await service.deleteAttachment(attachmentId);
+    await _loadAttachments();
+  }
+
+  void _showAttachmentPicker() {
+    final l10n = AppLocalizations.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  l10n.addAttachment,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: Text(l10n.takePhoto),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _addAttachmentFromCamera();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: Text(l10n.chooseFromGallery),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _addAttachmentFromGallery();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_file_outlined),
+                title: Text(l10n.attachFile),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _addAttachmentFromFile();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _shareNote() {
+    final loc = AppLocalizations.of(context);
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    final text = title.isEmpty
+        ? content
+        : '$title\n\n$content';
+    if (text.isEmpty && _noteType != NoteType.checklist) return;
+    SharePlus.instance.share(ShareParams(text: text));
+  }
+
+  Widget _buildAttachmentsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.attachment_outlined,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${_attachments.length} ${AppLocalizations.of(context).attachment}',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _attachments.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final attachment = _attachments[index];
+                final isImage = attachment.mimeType.startsWith('image/');
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    children: [
+                      if (isImage)
+                        Image.file(
+                          File(attachment.filePath),
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              _buildAttachmentPlaceholder(attachment),
+                        ),
+                      else
+                        _buildAttachmentPlaceholder(attachment),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(attachment.fileName),
+                                content: Text(AppLocalizations.of(context).confirmDeleteAttachment),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: Text(AppLocalizations.of(context).cancel),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      _deleteAttachment(attachment.id);
+                                    },
+                                    child: Text(
+                                      AppLocalizations.of(context).delete,
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.error,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.error.withOpacity(0.9),
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(8),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentPlaceholder(Attachment attachment) {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.insert_drive_file_outlined,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            attachment.fileName.length > 10
+                ? '${attachment.fileName.substring(0, 10)}...'
+                : attachment.fileName,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Formatting toolbar ──────────────────────────────────────────
+
+  void _insertFormatting(String prefix, String suffix) {
+    final selection = _contentController.selection;
+    _applyFormattingResult(
+      MarkdownFormat.wrap(
+        text: _contentController.text,
+        selectionStart: selection.start,
+        selectionEnd: selection.end,
+        prefix: prefix,
+        suffix: suffix,
+      ),
+    );
+  }
+
+  void _insertHeading() {
+    final selection = _contentController.selection;
+    _applyFormattingResult(
+      MarkdownFormat.insertLinePrefix(
+        text: _contentController.text,
+        selectionOffset: selection.start,
+        prefix: '# ',
+        suppressIfAlreadyPrefixed: true,
+      ),
+    );
+  }
+
+  void _insertBulletList() {
+    final selection = _contentController.selection;
+    _applyFormattingResult(
+      MarkdownFormat.insertLinePrefix(
+        text: _contentController.text,
+        selectionOffset: selection.start,
+        prefix: '- ',
+        suppressIfAlreadyPrefixed: false,
+      ),
+    );
+  }
+
+  void _insertNumberedList() {
+    final selection = _contentController.selection;
+    _applyFormattingResult(
+      MarkdownFormat.insertLinePrefix(
+        text: _contentController.text,
+        selectionOffset: selection.start,
+        prefix: '1. ',
+        suppressIfAlreadyPrefixed: false,
+      ),
+    );
+  }
+
+  void _applyFormattingResult(MarkdownFormatResult result) {
+    _contentController.text = result.text;
+    _contentController.selection =
+        TextSelection.collapsed(offset: result.cursorOffset);
+    if (mounted && _contentFocusNode.canRequestFocus) {
+      _contentFocusNode.requestFocus();
+    }
+  }
+
+  void _insertImageMarkdown() async {
+    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (file == null || !mounted) return;
+
+    if (widget.note?.id != null) {
+      final service = AttachmentService();
+      await service.addAttachment(
+        noteId: widget.note!.id!,
+        sourcePath: file.path,
+        fileName: file.name,
+        mimeType: 'image/jpeg',
+      );
+      await _loadAttachments();
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final markdown = '\n![${l10n.noteImage}](${file.path})\n';
+    final text = _contentController.text;
+    final cursorPos = _contentController.selection.start;
+    final newText =
+        '${text.substring(0, cursorPos)}$markdown${text.substring(cursorPos)}';
+    _contentController.text = newText;
+    _contentController.selection =
+        TextSelection.collapsed(offset: cursorPos + markdown.length);
+  }
+
+  Widget _buildFormattingToolbar() {
+    final theme = Theme.of(context);
+    final iconColor = theme.colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        children: [
+          _toolbarBtn(Icons.format_bold, () => _insertFormatting('**', '**'), iconColor, l10n.bold),
+          _toolbarBtn(Icons.format_italic, () => _insertFormatting('*', '*'), iconColor, l10n.italic),
+          _toolbarBtn(Icons.format_strikethrough, () => _insertFormatting('~~', '~~'), iconColor, l10n.strikethrough),
+          _toolbarBtn(Icons.code, () => _insertFormatting('`', '`'), iconColor, l10n.inlineCode),
+          _toolbarBtn(Icons.format_quote, () => _insertFormatting('> ', ''), iconColor, l10n.quote),
+          _tbDivider(),
+          _toolbarBtn(Icons.title, _insertHeading, iconColor, l10n.heading),
+          _toolbarBtn(Icons.format_list_bulleted, _insertBulletList, iconColor, l10n.bulletList),
+          _toolbarBtn(Icons.format_list_numbered, _insertNumberedList, iconColor, l10n.numberedList),
+          _tbDivider(),
+          _toolbarBtn(Icons.image_outlined, _insertImageMarkdown, iconColor, l10n.insertImage),
+          _toolbarBtn(Icons.link, () => _insertFormatting('[', '](url)'), iconColor, l10n.insertLink),
+        ],
+      ),
+    );
+  }
+
+  Widget _toolbarBtn(
+    IconData icon,
+    VoidCallback onPressed,
+    Color iconColor,
+    String tooltip,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        color: iconColor,
+        onPressed: onPressed,
+        tooltip: tooltip,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 44),
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  Widget _tbDivider() {
+    return VerticalDivider(
+      width: 8,
+      thickness: 1,
+      color: Theme.of(context).colorScheme.outlineVariant,
+    );
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoSaveTimer?.cancel();
+    _contentController.removeListener(_onContentChanged);
+    _contentFocusNode.removeListener(_onContentFocusChanged);
+    _titleController.removeListener(_onTitleChanged);
     _titleController.dispose();
     _contentController.dispose();
+    _contentFocusNode.dispose();
     super.dispose();
   }
 
   void _save() async {
+    _autoSaveTimer?.cancel();
+    final loc = AppLocalizations.of(context);
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
 
@@ -92,12 +603,19 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
     final tagProvider = context.read<TagProvider>();
 
     if (isEditing) {
-      final updated = widget.note!.copyWith(
-        title: title.isEmpty ? '无标题' : title,
+      final updated = NoteEntity(
+        id: widget.note!.id,
+        title: title.isEmpty ? loc.untitled : title,
         content: _noteType == NoteType.text ? content : '',
         noteType: _noteType,
         color: _selectedColor.value,
+        isPinned: widget.note!.isPinned,
+        isArchived: widget.note!.isArchived,
+        isDeleted: widget.note!.isDeleted,
+        deletedAt: widget.note!.deletedAt,
         reminderTimestamp: _reminderTimestamp,
+        reminderFired: _reminderTimestamp == null ? null : false,
+        createdAt: widget.note!.createdAt,
         updatedAt: now,
       );
       await provider.updateNote(updated);
@@ -123,11 +641,12 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       }
     } else {
       final note = NoteEntity(
-        title: title.isEmpty ? '无标题' : title,
+        title: title.isEmpty ? loc.untitled : title,
         content: _noteType == NoteType.text ? content : '',
         noteType: _noteType,
         color: _selectedColor.value,
         reminderTimestamp: _reminderTimestamp,
+        reminderFired: _reminderTimestamp == null ? null : false,
         createdAt: now,
         updatedAt: now,
       );
@@ -152,6 +671,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   }
 
   void _showColorPicker() {
+    final loc = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -164,7 +684,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '选择颜色',
+              loc.selectColor,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
@@ -215,6 +735,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   }
 
   void _showTagSelector() {
+    final loc = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -235,7 +756,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '选择标签',
+                      loc.selectTags,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
@@ -274,6 +795,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.backgroundColor(
         _selectedColor.value,
@@ -284,14 +806,28 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
           _selectedColor.value,
           Theme.of(context).brightness,
         ).withOpacity(0.8),
-        title: Text(isEditing ? '编辑笔记' : '新建笔记'),
+        title: Text(isEditing ? l10n.editNote : l10n.newNote),
         actions: [
+          if (_noteType == NoteType.text) ...[
+            IconButton(
+              icon: const Icon(Icons.undo),
+              tooltip: l10n.undo,
+              onPressed:
+                  _contentHistory.canUndo ? _undo : null,
+            ),
+            IconButton(
+              icon: const Icon(Icons.redo),
+              tooltip: l10n.redo,
+              onPressed:
+                  _contentHistory.canRedo ? _redo : null,
+            ),
+          ],
           if (_noteType == NoteType.text && !isEditing)
             IconButton(
               icon: Icon(
                 _isPreviewing ? Icons.edit : Icons.visibility,
               ),
-              tooltip: _isPreviewing ? '编辑' : '预览',
+              tooltip: _isPreviewing ? l10n.edit : l10n.preview,
               onPressed: () {
                 setState(() => _isPreviewing = !_isPreviewing);
               },
@@ -299,12 +835,12 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
           if (isEditing && widget.note!.noteType != 'checklist')
             IconButton(
               icon: const Icon(Icons.swap_horiz),
-              tooltip: '转换为清单',
+              tooltip: l10n.convertToChecklist,
               onPressed: _showConvertConfirmDialog,
             ),
           IconButton(
             icon: const Icon(Icons.palette_outlined),
-            tooltip: '更换颜色',
+            tooltip: l10n.changeColor,
             onPressed: _showColorPicker,
           ),
           if (!isEditing)
@@ -312,7 +848,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
               icon: Icon(
                 _noteType == NoteType.checklist ? Icons.checklist : Icons.notes,
               ),
-              tooltip: _noteType == NoteType.checklist ? '切换为文本' : '切换为清单',
+              tooltip: _noteType == NoteType.checklist ? l10n.convertToText : l10n.convertToChecklist,
               onPressed: () {
                 setState(() {
                   _noteType = _noteType == NoteType.text
@@ -328,23 +864,35 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                   ? Icons.notifications_active
                   : Icons.notifications_none,
             ),
-            tooltip: '提醒',
+            tooltip: l10n.reminder,
             onPressed: _showReminderPicker,
           ),
           IconButton(
             icon: const Icon(Icons.label_outlined),
-            tooltip: '管理标签',
+            tooltip: l10n.tagManage,
             onPressed: _showTagSelector,
           ),
           if (isEditing)
             IconButton(
+              icon: const Icon(Icons.attachment_outlined),
+              tooltip: l10n.attachment,
+              onPressed: _showAttachmentPicker,
+            ),
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: l10n.share,
+              onPressed: _shareNote,
+            ),
+          if (isEditing)
+            IconButton(
               icon: const Icon(Icons.file_download_outlined),
-              tooltip: '导出',
+              tooltip: l10n.export,
               onPressed: _exportNote,
             ),
           IconButton(
             icon: const Icon(Icons.save_outlined),
-            tooltip: '保存',
+            tooltip: l10n.save,
             onPressed: _save,
           ),
         ],
@@ -356,8 +904,8 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
             child: TextField(
               controller: _titleController,
               style: Theme.of(context).textTheme.headlineSmall,
-              decoration: const InputDecoration(
-                hintText: '标题',
+              decoration: InputDecoration(
+                hintText: l10n.titleHint,
                 border: InputBorder.none,
                 filled: false,
               ),
@@ -367,7 +915,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               isEditing
-                  ? '最后编辑：${DateFormat('yyyy/MM/dd HH:mm').format(widget.note!.updatedAt)}'
+                  ? l10n.lastEditedAt(DateFormat('yyyy/MM/dd HH:mm').format(widget.note!.updatedAt))
                   : DateFormat('yyyy/MM/dd HH:mm').format(DateTime.now()),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -386,7 +934,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                   final tag = tagProvider.tags.firstWhere(
                     (t) => t.id == tagId,
                     orElse: () => TagEntity(
-                      name: '未知',
+                      name: l10n.unknown,
                       createdAt: DateTime.now(),
                     ),
                   );
@@ -397,6 +945,21 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                     },
                   );
                 }).toList(),
+              ),
+            ),
+          if (isEditing && _attachments.isNotEmpty)
+            _buildAttachmentsSection(),
+          if (isEditing && _attachments.isEmpty && _noteType != NoteType.checklist)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                height: 24,
+                child: Text(
+                  l10n.noAttachments,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
               ),
             ),
           Expanded(
@@ -412,7 +975,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                               ? Padding(
                                   padding: const EdgeInsets.all(32),
                                   child: Text(
-                                    '暂无内容预览',
+                                    l10n.noPreviewContent,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -433,36 +996,47 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: TextField(
                           controller: _contentController,
+                          focusNode: _contentFocusNode,
                           maxLines: null,
                           expands: true,
                           textAlignVertical: TextAlignVertical.top,
                           style: Theme.of(context).textTheme.bodyLarge,
-                          decoration: const InputDecoration(
-                            hintText: '开始记录...',
+                          decoration: InputDecoration(
+                            hintText: l10n.contentHint,
                             border: InputBorder.none,
                             filled: false,
                           ),
                         ),
                       ),
           ),
+          if (_noteType == NoteType.text && !_isPreviewing && _contentFocusNode.hasFocus)
+            _buildFormattingToolbar(),
           if (_noteType == NoteType.text && !_isPreviewing)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Text(
-                    '字符: ${_contentController.text.length}',
+                    l10n.charCount(_contentController.text.length),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    '单词: ${_computeWordCount()}',
+                    l10n.wordCount(_computeWordCount()),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
+                  const Spacer(),
+                  if (_didAutoSave && isEditing)
+                    Text(
+                      l10n.autoSaved,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                    ),
                 ],
               ),
             ),
@@ -472,6 +1046,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   }
 
   Future<void> _exportNote() async {
+    final loc = AppLocalizations.of(context);
     if (widget.note?.id == null) return;
     final repo = context.read<NoteProvider>();
     final noteWithTags = await repo.getNote(widget.note!.id!);
@@ -484,8 +1059,9 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
     final note = noteWithTags.note;
     final tagNames =
         noteWithTags.tags.map((t) => t.name).toList();
+    final fallbackTitle = loc.untitled;
     final fileName =
-        '${exportService.sanitizeFileName(note.title.isNotEmpty ? note.title : '无标题')}.md';
+        '${exportService.sanitizeFileName(note.title.isNotEmpty ? note.title : fallbackTitle)}.md';
 
     String content;
     if (note.noteType == 'checklist') {
@@ -502,13 +1078,13 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       await exportService.exportToFile(dir, fileName, content);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出成功：$fileName')),
+          SnackBar(content: Text(loc.exportSucceeded(fileName))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败：$e')),
+          SnackBar(content: Text(loc.exportFailed('$e'))),
         );
       }
     }
@@ -516,10 +1092,11 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
 
   Future<void> _scheduleReminderNotification(
       int noteId, String title, DateTime date) async {
+    final l = AppLocalizations.of(context);
     await NotificationService().scheduleNotification(
       id: noteId,
-      title: '提醒: $title',
-      body: '笔记「$title」提醒',
+      title: l.reminderNotificationTitle(title),
+      body: l.reminderNotificationBody(title),
       scheduledDate: date,
     );
   }
@@ -531,6 +1108,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   }
 
   Future<void> _showReminderPicker() async {
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final initialDate = _reminderTimestamp != null
         ? DateTime.fromMillisecondsSinceEpoch(_reminderTimestamp! * 1000)
@@ -541,14 +1119,14 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       initialDate: initialDate,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      helpText: '设置提醒日期',
+      helpText: l.reminderDateHelp,
     );
     if (date == null || !mounted) return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initialDate),
-      helpText: '设置提醒时间',
+      helpText: l.reminderTimeHelp,
     );
     if (time == null || !mounted) return;
 
@@ -563,7 +1141,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
     if (reminderDate.isBefore(now)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('提醒时间不能早于当前时间')),
+          SnackBar(content: Text(l.reminderPastError)),
         );
       }
       return;
@@ -578,19 +1156,20 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   }
 
   void _showConvertConfirmDialog() async {
+    final loc = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('转换笔记类型'),
-        content: const Text('将文本笔记转换为清单后，原有内容将清空。确定继续吗？'),
+        title: Text(loc.convertConfirmTitle),
+        content: Text(loc.convertConfirmContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
+            child: Text(loc.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确定'),
+            child: Text(loc.confirm),
           ),
         ],
       ),

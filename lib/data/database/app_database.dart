@@ -14,9 +14,9 @@ class Notes extends Table {
   BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
-  TextColumn? get deletedAt => text().nullable()();
-  IntColumn? get reminderTimestamp => integer().nullable()();
-  BoolColumn? get reminderFired => boolean().nullable()();
+  TextColumn get deletedAt => text().nullable()();
+  IntColumn get reminderTimestamp => integer().nullable()();
+  BoolColumn get reminderFired => boolean().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
 

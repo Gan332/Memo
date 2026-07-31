@@ -72,42 +72,6 @@ void main() {
       expect(note.preview, 'Short');
     });
 
-    test('formattedDate returns correct relative times', () {
-      final now = DateTime.now();
-
-      final justNow = NoteEntity(
-        title: 'Test',
-        content: '',
-        createdAt: now,
-        updatedAt: now,
-      );
-      expect(justNow.formattedDate, '刚刚');
-
-      final minutesAgo = NoteEntity(
-        title: 'Test',
-        content: '',
-        createdAt: now,
-        updatedAt: now.subtract(const Duration(minutes: 5)),
-      );
-      expect(minutesAgo.formattedDate, '5 分钟前');
-
-      final hoursAgo = NoteEntity(
-        title: 'Test',
-        content: '',
-        createdAt: now,
-        updatedAt: now.subtract(const Duration(hours: 3)),
-      );
-      expect(hoursAgo.formattedDate, '3 小时前');
-
-      final daysAgo = NoteEntity(
-        title: 'Test',
-        content: '',
-        createdAt: now,
-        updatedAt: now.subtract(const Duration(days: 3)),
-      );
-      expect(daysAgo.formattedDate, '3 天前');
-    });
-
     test('backgroundColor returns correct Color', () {
       final now = DateTime.now();
       final note = NoteEntity(

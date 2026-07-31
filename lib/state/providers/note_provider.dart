@@ -24,6 +24,7 @@ class NoteProvider extends ChangeNotifier {
   bool? _filterPinned;
   String? _filterNoteType;
   int? _filterTagId;
+  bool? _filterHasReminder;
   SortBy _sortBy = SortBy.updatedAt;
   bool _sortAscending = false;
   Timer? _debounceTimer;
@@ -47,6 +48,7 @@ class NoteProvider extends ChangeNotifier {
   bool? get filterPinned => _filterPinned;
   String? get filterNoteType => _filterNoteType;
   int? get filterTagId => _filterTagId;
+  bool? get filterHasReminder => _filterHasReminder;
   SortBy get sortBy => _sortBy;
   bool get sortAscending => _sortAscending;
   bool get isMultiSelectMode => _isMultiSelectMode;
@@ -58,7 +60,8 @@ class NoteProvider extends ChangeNotifier {
       _filterArchived != null ||
       _filterPinned != null ||
       _filterNoteType != null ||
-      _filterTagId != null;
+      _filterTagId != null ||
+      _filterHasReminder != null;
 
   Future<void> _loadSortPreference() async {
     final prefs = await SharedPreferences.getInstance();
@@ -107,6 +110,7 @@ class NoteProvider extends ChangeNotifier {
         isPinned: _filterPinned,
         noteType: _filterNoteType,
         tagId: _filterTagId,
+        hasReminder: _filterHasReminder,
       ))
           .map((nwt) => nwt.note)
           .toList();
@@ -136,11 +140,13 @@ class NoteProvider extends ChangeNotifier {
     bool? pinned,
     String? noteType,
     int? tagId,
+    bool? hasReminder,
   }) {
     _filterArchived = archived;
     _filterPinned = pinned;
     _filterNoteType = noteType;
     _filterTagId = tagId;
+    _filterHasReminder = hasReminder;
     loadNotes();
   }
 
@@ -149,6 +155,7 @@ class NoteProvider extends ChangeNotifier {
     _filterPinned = null;
     _filterNoteType = null;
     _filterTagId = null;
+    _filterHasReminder = null;
     _searchQuery = '';
     loadNotes();
   }
@@ -165,6 +172,8 @@ class NoteProvider extends ChangeNotifier {
       color: Value(note.color),
       isPinned: Value(note.isPinned),
       isArchived: Value(note.isArchived),
+      reminderTimestamp: Value(note.reminderTimestamp),
+      reminderFired: Value(note.reminderFired),
       createdAt: Value(note.createdAt.toIso8601String()),
       updatedAt: Value(note.updatedAt.toIso8601String()),
     ));
@@ -182,6 +191,8 @@ class NoteProvider extends ChangeNotifier {
       color: Value(note.color),
       isPinned: Value(note.isPinned),
       isArchived: Value(note.isArchived),
+      reminderTimestamp: Value(note.reminderTimestamp),
+      reminderFired: Value(note.reminderFired),
       createdAt: Value(note.createdAt.toIso8601String()),
       updatedAt: Value(note.updatedAt.toIso8601String()),
     ));
@@ -277,6 +288,8 @@ class NoteProvider extends ChangeNotifier {
       color: Value(note.color),
       isPinned: Value(note.isPinned),
       isArchived: Value(note.isArchived),
+      reminderTimestamp: Value(note.reminderTimestamp),
+      reminderFired: Value(note.reminderFired),
       createdAt: note.createdAt,
       updatedAt: note.updatedAt,
     ));

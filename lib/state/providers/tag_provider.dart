@@ -89,6 +89,22 @@ class TagProvider extends ChangeNotifier {
     return result.map((nt) => nt.tagId).toList();
   }
 
+  Future<int> getNoteCountForTag(int tagId) async {
+    final result = await (_db.select(_db.noteTags)
+          ..where((nt) => nt.tagId.equals(tagId)))
+        .get();
+    return result.length;
+  }
+
+  Future<Map<int, int>> getNoteCounts() async {
+    final result = await (_db.select(_db.noteTags)).get();
+    final counts = <int, int>{};
+    for (final nt in result) {
+      counts[nt.tagId] = (counts[nt.tagId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   @override
   void dispose() {
     super.dispose();

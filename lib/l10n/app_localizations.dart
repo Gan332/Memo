@@ -33,6 +33,7 @@ class AppLocalizations {
   String get delete => isZh ? '删除' : 'Delete';
   String get confirm => isZh ? '确定' : 'Confirm';
   String get undo => isZh ? '撤销' : 'Undo';
+  String get redo => isZh ? '重做' : 'Redo';
   String get pin => isZh ? '置顶' : 'Pin';
   String get unpin => isZh ? '取消置顶' : 'Unpin';
   String get archive => isZh ? '归档' : 'Archive';
@@ -139,6 +140,12 @@ class AppLocalizations {
   String get notes => isZh ? '笔记' : 'Notes';
   String get tag => isZh ? '标签' : 'Tag';
 
+  // Tag management
+  String get deleteTagTitle => isZh ? '删除标签' : 'Delete Tag';
+  String deleteTagConfirm(String tagName) => isZh
+      ? '确定要删除标签「$tagName」吗？\n标签将被移除，但关联的笔记不会被删除。'
+      : 'Delete tag "$tagName"?\nThe tag will be removed, but linked notes won\'t be deleted.';
+
   // Trash
   String get trash => isZh ? '回收站' : 'Trash';
   String get trashEmpty => isZh ? '回收站为空' : 'Trash is empty';
@@ -156,6 +163,7 @@ class AppLocalizations {
 
   // Reminder
   String get reminder => isZh ? '提醒' : 'Reminder';
+  String get hasReminder => isZh ? '有提醒' : 'Has Reminder';
   String get setReminder => isZh ? '设置提醒' : 'Set Reminder';
   String get clearReminder => isZh ? '清除提醒' : 'Clear Reminder';
   String get reminderDateHelp => isZh ? '设置提醒日期' : 'Select reminder date';
@@ -164,9 +172,25 @@ class AppLocalizations {
   String reminderNotificationTitle(String title) => isZh ? '提醒: $title' : 'Reminder: $title';
   String reminderNotificationBody(String title) => isZh ? '笔记「$title」提醒' : 'Reminder for "$title"';
 
+  // Multi-select
+  String selectedCount(int count) => isZh ? '已选 $count 项' : '$count selected';
+
+  // Tag count
+  String noteCount(int count) => isZh ? '$count 条笔记' : '$count notes';
+
+  // Editor actions
+  String get untitled => isZh ? '无标题' : 'Untitled';
+  String get changeColor => isZh ? '更换颜色' : 'Change color';
+  String get unknown => isZh ? '未知' : 'Unknown';
+  String lastEditedAt(String formatted) => isZh
+      ? '最后编辑：$formatted'
+      : 'Last edited: $formatted';
+
   // Export
   String get export => isZh ? '导出' : 'Export';
-  String get exportSuccess => isZh ? '导出成功' : 'Export successful';
+  String exportSucceeded(String fileName) => isZh
+      ? '导出成功：$fileName'
+      : 'Export successful: $fileName';
 
   // Templates
   String get newNoteFromTemplate => isZh ? '新建笔记' : 'New Note';
@@ -175,6 +199,37 @@ class AppLocalizations {
   String get journal => isZh ? '日记' : 'Journal';
   String get todoList => isZh ? '待办清单' : 'TODO List';
   String get idea => isZh ? '灵感' : 'Idea';
+
+  // Attachments & Share
+  String get attachment => isZh ? '附件' : 'Attachment';
+  String get addAttachment => isZh ? '添加附件' : 'Add Attachment';
+  String get takePhoto => isZh ? '拍照' : 'Take Photo';
+  String get chooseFromGallery => isZh ? '从相册选择' : 'Choose from Gallery';
+  String get attachFile => isZh ? '选择文件' : 'Attach File';
+  String get noAttachments => isZh ? '暂无附件，点击附件按钮添加' : 'No attachments. Tap attachment icon to add';
+  String get share => isZh ? '分享' : 'Share';
+  String get confirmDeleteAttachment => isZh ? '确定要删除此附件吗？' : 'Delete this attachment?';
+
+  // Auto-save
+  String get autoSaved => isZh ? '已自动保存' : 'Auto-saved';
+  String get saveFailed => isZh ? '保存失败' : 'Save failed';
+
+  // Formatting toolbar
+  String get noteImage => isZh ? '笔记图片' : 'Note image';
+  String get bold => isZh ? '加粗' : 'Bold';
+  String get italic => isZh ? '斜体' : 'Italic';
+  String get strikethrough => isZh ? '删除线' : 'Strikethrough';
+  String get inlineCode => isZh ? '行内代码' : 'Inline Code';
+  String get quote => isZh ? '引用' : 'Quote';
+  String get heading => isZh ? '标题' : 'Heading';
+  String get bulletList => isZh ? '无序列表' : 'Bullet List';
+  String get numberedList => isZh ? '有序列表' : 'Numbered List';
+  String get insertImage => isZh ? '插入图片' : 'Insert Image';
+  String get insertLink => isZh ? '插入链接' : 'Insert Link';
+
+  // Notes section
+  String get pinnedNotes => isZh ? '置顶笔记' : 'Pinned';
+  String get otherNotes => isZh ? '其他笔记' : 'Notes';
 
   String justNow() => isZh ? '刚刚' : 'just now';
 

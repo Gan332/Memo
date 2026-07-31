@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../domain/entities/note_entity.dart';
 import '../state/providers/note_provider.dart';
+import '../screens/add_edit_note_screen.dart';
 import '../widgets/note_card.dart';
 
 class TrashScreen extends StatelessWidget {
@@ -53,7 +55,28 @@ class TrashScreen extends StatelessWidget {
                     final note = provider.trashedNotes[index];
                     return NoteCard(
                       note: note,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AddEditNoteScreen(
+                              note: NoteEntity(
+                                id: note.id,
+                                title: note.title,
+                                content: note.content,
+                                noteType:
+                                    NoteType.values.byName(note.noteType),
+                                color: note.color,
+                                isPinned: note.isPinned,
+                                isArchived: note.isArchived,
+                                createdAt:
+                                    DateTime.parse(note.createdAt),
+                                updatedAt:
+                                    DateTime.parse(note.updatedAt),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                       isTrash: true,
                       onRestore: () => provider.restoreNote(note.id),
                       onPermanentDelete: () =>

@@ -16,82 +16,85 @@ import 'screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().init();
-  runApp(const MemoApp());
+  final db = AppDatabase();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => NoteProvider(db: db)),
+        ChangeNotifierProvider(create: (_) => TagProvider(db: db)),
+        ChangeNotifierProvider(create: (_) => ChecklistProvider(db: db)),
+      ],
+      child: MemoApp(db: db),
+    ),
+  );
 }
 
 class MemoApp extends StatefulWidget {
-  const MemoApp({super.key});
+  final AppDatabase db;
+  const MemoApp({super.key, required this.db});
 
   @override
   State<MemoApp> createState() => _MemoAppState();
 }
 
 class _MemoAppState extends State<MemoApp> with WidgetsBindingObserver {
-  late final AppDatabase _db;
-
   @override
   void initState() {
     super.initState();
-    _db = AppDatabase();
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Check for missed reminders
+      // Check for missed reminders — providers are now ancestors,
+      // so context.read works correctly from lifecycle methods.
       context.read<NoteProvider>().checkPendingReminders();
     }
     if (state == AppLifecycleState.detached) {
-      _db.close();
+      widget.db.close();
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _db.close();
+    widget.db.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => NoteProvider(db: _db)),
-        ChangeNotifierProvider(create: (_) => TagProvider(db: _db)),
-        ChangeNotifierProvider(create: (_) => ChecklistProvider(db: _db)),
-      ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return DynamicColorBuilder(
-            builder: (lightColorScheme, darkColorScheme) {
-              final lightScheme =
-                  themeProvider.useDynamicColor ? lightColorScheme : null;
-              final darkScheme =
-                  themeProvider.useDynamicColor ? darkColorScheme : null;
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return DynamicColorBuilder(
+          builder: (lightColorScheme, darkColorScheme) {
+            final lightScheme =
+                themeProvider.useDynamicColor ? lightColorScheme : null;
+            final darkScheme =
+                themeProvider.useDynamicColor ? darkColorScheme : null;
 
-              return MaterialApp(
-                title: '备忘录',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.lightTheme(lightScheme),
-                darkTheme: AppTheme.darkTheme(darkScheme),
-                themeMode: themeProvider.themeMode,
-                locale: themeProvider.locale,
-                localizationsDelegates: const [
-                  AppLocalizations.delegate,
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: AppLocalizations.supportedLocales,
-                home: const HomeScreen(),
-              );
-            },
-          );
-        },
-      ),
+            return MaterialApp(
+              title: '备忘录',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme(lightScheme),
+              darkTheme: AppTheme.darkTheme(darkScheme),
+              themeMode: themeProvider.themeMode,
+              locale: themeProvider.locale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const HomeScreen(),
+            );
+          },
+        );
+      },
     );
   }
 }

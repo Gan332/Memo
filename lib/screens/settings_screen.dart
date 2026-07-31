@@ -8,6 +8,8 @@ import '../state/providers/theme_provider.dart';
 import '../services/backup_service.dart';
 import '../services/platform_file.dart';
 
+const String _appVersion = '1.0.0+1';
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -45,7 +47,7 @@ class SettingsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.info_outline),
                 title: Text(l10n.version),
-                subtitle: const Text('1.0.0'),
+                subtitle: Text(_appVersion),
               ),
             ],
           );
