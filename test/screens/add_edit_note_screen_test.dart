@@ -104,9 +104,9 @@ void main() {
 
       await apply(Icons.format_bold, '**hello**', 9);
       await apply(Icons.format_quote, '> hello', 7);
-      await apply(Icons.title, '# hello', 7);
-      await apply(Icons.format_list_bulleted, '- hello', 7);
-      await apply(Icons.format_list_numbered, '1. hello', 8);
+      await apply(Icons.title, '# hello', 2);
+      await apply(Icons.format_list_bulleted, '- hello', 2);
+      await apply(Icons.format_list_numbered, '1. hello', 3);
       await apply(Icons.link, '[hello](url)', 12);
     });
 
