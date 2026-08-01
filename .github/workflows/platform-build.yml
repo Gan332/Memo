@@ -87,11 +87,14 @@ jobs:
       - name: Build iOS (simulator)
         run: flutter build ios --release --no-codesign
 
+      - name: Package iOS build
+        run: ditto -c -k --sequesterRsrc build/ios/iphoneos/Runner.app memo_app-ios.zip
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
           name: ios-build
-          path: build/ios/iphoneos/Runner.app
+          path: memo_app-ios.zip
           retention-days: 14
 
   build-web:
@@ -120,11 +123,14 @@ jobs:
       - name: Build Web
         run: flutter build web --release
 
+      - name: Package Web build
+        run: cd build/web && zip -r ../../memo_app-web.zip .
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
           name: web-build
-          path: build/web/
+          path: memo_app-web.zip
           retention-days: 14
 
   build-windows:
@@ -157,11 +163,15 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
+      - name: Package Windows build
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath memo_app-windows-x64.zip -Force
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
           name: windows-build
-          path: build/windows/x64/runner/Release/
+          path: memo_app-windows-x64.zip
           retention-days: 14
 
   build-macos:
@@ -190,11 +200,14 @@ jobs:
       - name: Build macOS
         run: flutter build macos --release
 
+      - name: Package macOS build
+        run: ditto -c -k --sequesterRsrc build/macos/Build/Products/Release/memo_app.app memo_app-macos.zip
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
           name: macos-build
-          path: build/macos/Build/Products/Release/
+          path: memo_app-macos.zip
           retention-days: 14
 
   build-linux:
@@ -228,9 +241,49 @@ jobs:
       - name: Build Linux
         run: flutter build linux --release
 
+      - name: Package Linux build
+        run: tar -czf memo_app-linux-x64.tar.gz -C build/linux/x64/release/bundle .
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
           name: linux-build
-          path: build/linux/x64/release/bundle/
+          path: memo_app-linux-x64.tar.gz
           retention-days: 14
+
+  publish-nightly:
+    name: Publish Nightly Release
+    runs-on: ubuntu-latest
+    needs: [gate, build-android, build-ios, build-web, build-windows, build-macos, build-linux]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts/
+
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Remove the previous nightly release and its tag, then re-point the tag at this commit.
+          gh release delete nightly --yes --cleanup-tag || true
+          gh api -X POST repos/$GITHUB_REPOSITORY/git/refs \
+            -f ref=refs/tags/nightly \
+            -f sha=$GITHUB_SHA
+
+          mapfile -d '' files < <(
+            find artifacts -type f \( \
+              -name '*.apk' -o -name '*.aab' -o -name '*.zip' -o -name '*.tar.gz' \
+            \) -print0
+          )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No build artifacts found to publish"
+            exit 1
+          fi
+
+          gh release create nightly "${files[@]}" \
+            --title "Nightly Build ($(date -u +%Y-%m-%d))" \
+            --notes "Automated build from commit ${GITHUB_SHA:0:7} on main." \
+            --prerelease
