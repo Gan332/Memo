@@ -79,3 +79,10 @@ web/manifest.json
 
 # Coverage
 coverage/
+
+# Agent tools
+.od-skills/
+
+# Design prototypes
+memo-main-screen.html
+memo-main-screen.html.artifact.json
