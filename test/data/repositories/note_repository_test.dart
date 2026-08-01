@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memo_app/data/database/app_database.dart';
 import 'package:memo_app/data/repositories/note_repository.dart';

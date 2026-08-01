@@ -257,7 +257,7 @@ class AppLocalizations {
   String get tagDistribution => isZh ? '标签分布' : 'Tag Distribution';
   String get noTagsForStats => isZh ? '暂无标签' : 'No tags yet';
   String get creationTrend => isZh ? '最近 7 天创建趋势' : 'Created (Last 7 Days)';
-  String get notesCount(int count) => isZh ? '$count 篇' : '$count note(s)';
+  String notesCount(int count) => isZh ? '$count 篇' : '$count note(s)';
   String get todayLabel => isZh ? '今天' : 'Today';
   String get noData => isZh ? '暂无数据' : 'No data';
   String get loadFailed => isZh ? '加载失败' : 'Failed to load';

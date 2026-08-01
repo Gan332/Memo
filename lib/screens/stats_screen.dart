@@ -189,6 +189,7 @@ class _StatsScreenState extends State<StatsScreen> {
         children: [
           _distributionBar(
             context,
+            l10n,
             l10n.textNote,
             stats.textCount,
             stats.totalCount,
@@ -197,6 +198,7 @@ class _StatsScreenState extends State<StatsScreen> {
           const SizedBox(height: 12),
           _distributionBar(
             context,
+            l10n,
             l10n.checklistNote,
             stats.checklistCount,
             stats.totalCount,
@@ -205,6 +207,7 @@ class _StatsScreenState extends State<StatsScreen> {
           const SizedBox(height: 12),
           _distributionBar(
             context,
+            l10n,
             l10n.trash,
             stats.trashedCount,
             stats.totalCount,
@@ -217,6 +220,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Widget _distributionBar(
     BuildContext context,
+    AppLocalizations l10n,
     String label,
     int count,
     int total,
@@ -355,6 +359,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _distributionBar(
                     context,
+                    l10n,
                     tag.name,
                     entry.value,
                     stats.totalCount,
