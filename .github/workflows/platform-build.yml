@@ -2,6 +2,10 @@ name: Platform Builds
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: platform-${{ github.ref }}
@@ -11,9 +15,18 @@ permissions:
   contents: read
 
 jobs:
+  gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Check CI result
+        run: echo "Proceeding with platform builds"
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
+    needs: gate
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +64,7 @@ jobs:
   build-ios:
     name: Build iOS
     runs-on: macos-latest
+    needs: gate
     steps:
       - uses: actions/checkout@v4
 
@@ -83,6 +97,7 @@ jobs:
   build-web:
     name: Build Web
     runs-on: ubuntu-latest
+    needs: gate
     steps:
       - uses: actions/checkout@v4
 
@@ -115,6 +130,7 @@ jobs:
   build-windows:
     name: Build Windows
     runs-on: windows-latest
+    needs: gate
     steps:
       - uses: actions/checkout@v4
 
@@ -151,6 +167,7 @@ jobs:
   build-macos:
     name: Build macOS
     runs-on: macos-latest
+    needs: gate
     steps:
       - uses: actions/checkout@v4
 
@@ -183,6 +200,7 @@ jobs:
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
+    needs: gate
     steps:
       - uses: actions/checkout@v4
 

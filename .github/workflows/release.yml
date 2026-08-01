@@ -1,17 +1,27 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    tags: ['v*.*.*']
 
 permissions:
   contents: write
 
 jobs:
+  gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Check CI result
+        run: echo "CI passed, proceeding with release"
+
   validate:
     name: Validate Release
     runs-on: ubuntu-latest
+    needs: gate
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
@@ -20,7 +30,12 @@ jobs:
       - name: Extract version from tag
         id: get_version
         run: |
-          TAG="${GITHUB_REF#refs/tags/v}"
+          if [ -n "${{ github.event.workflow_run.ref }}" ]; then
+            REF="${{ github.event.workflow_run.ref }}"
+          else
+            REF="${{ github.ref }}"
+          fi
+          TAG="${REF#refs/tags/v}"
           echo "version=$TAG" >> $GITHUB_OUTPUT
 
       - name: Verify tag matches pubspec version
