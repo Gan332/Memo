@@ -185,5 +185,97 @@ void main() {
       final archivedCount = await repository.getNoteCount(isArchived: true);
       expect(archivedCount, 1);
     });
+
+    test('getStats aggregates note statistics', () async {
+      await repository.insertNote(NotesCompanion.insert(
+        title: Value('Active Pinned'),
+        content: Value('hello world'),
+        isPinned: const Value(true),
+        createdAt: '2025-01-01T00:00:00',
+        updatedAt: '2025-01-01T00:00:00',
+      ));
+      await repository.insertNote(NotesCompanion.insert(
+        title: Value('Checklist'),
+        content: Value(''),
+        noteType: const Value('checklist'),
+        isArchived: const Value(true),
+        createdAt: '2025-01-02T00:00:00',
+        updatedAt: '2025-01-02T00:00:00',
+      ));
+
+      final stats = await repository.getStats();
+
+      expect(stats.totalCount, 2);
+      expect(stats.activeCount, 1);
+      expect(stats.archivedCount, 1);
+      expect(stats.trashedCount, 0);
+      expect(stats.pinnedCount, 1);
+      expect(stats.checklistCount, 1);
+      expect(stats.textCount, 1);
+      expect(stats.totalWords, 2);
+      expect(stats.totalChars, 11);
+      expect(stats.createdByDay.length, 7);
+    });
+
+    test('duplicateNote copies note with tags and checklist items', () async {
+      final tagId = await db.into(db.tags).insert(
+            TagsCompanion.insert(
+              name: 'Work',
+              color: const Value(0xFF66BB6A),
+              createdAt: '2025-01-01T00:00:00',
+            ),
+          );
+      final noteId = await repository.insertNote(NotesCompanion.insert(
+        title: Value('Original'),
+        content: Value('# hello'),
+        noteType: const Value('checklist'),
+        isPinned: const Value(true),
+        isArchived: const Value(true),
+        reminderTimestamp: const Value(1800000000),
+        reminderFired: const Value(false),
+        createdAt: '2025-01-01T00:00:00',
+        updatedAt: '2025-01-01T00:00:00',
+      ));
+      await db.into(db.noteTags).insert(
+            NoteTagsCompanion.insert(noteId: noteId, tagId: tagId),
+          );
+      await db.into(db.checklistItems).insert(
+            ChecklistItemsCompanion.insert(
+              noteId: noteId,
+              itemText: 'item one',
+              isCompleted: const Value(true),
+              sortOrder: const Value(0),
+            ),
+          );
+
+      final newId = await repository.duplicateNote(noteId);
+
+      expect(newId, isNot(noteId));
+      final copy = await repository.getNote(newId);
+      expect(copy, isNotNull);
+      expect(copy!.note.title, 'Original');
+      expect(copy.note.content, '# hello');
+      expect(copy.note.noteType, 'checklist');
+      expect(copy.note.isPinned, true);
+      expect(copy.note.isArchived, true);
+      expect(copy.note.isDeleted, false);
+      expect(copy.note.reminderTimestamp, isNull);
+      expect(copy.note.reminderFired, isNull);
+      expect(copy.note.createdAt, isNot('2025-01-01T00:00:00'));
+      expect(copy.tags.map((t) => t.name), contains('Work'));
+
+      final items = await repository.getChecklistItems(newId);
+      expect(items.length, 1);
+      expect(items.first.itemText, 'item one');
+      expect(items.first.isCompleted, true);
+      expect(items.first.sortOrder, 0);
+    });
+
+    test('duplicateNote throws when note does not exist', () async {
+      expect(
+        () => repository.duplicateNote(9999),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 }

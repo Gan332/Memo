@@ -226,10 +226,41 @@ class AppLocalizations {
   String get numberedList => isZh ? '有序列表' : 'Numbered List';
   String get insertImage => isZh ? '插入图片' : 'Insert Image';
   String get insertLink => isZh ? '插入链接' : 'Insert Link';
+  String get insertCodeBlock => isZh ? '代码块' : 'Code Block';
+  String get insertTable => isZh ? '插入表格' : 'Insert Table';
+  String get insertDivider => isZh ? '分隔线' : 'Horizontal Rule';
 
   // Notes section
   String get pinnedNotes => isZh ? '置顶笔记' : 'Pinned';
   String get otherNotes => isZh ? '其他笔记' : 'Notes';
+  String get duplicate => isZh ? '复制' : 'Duplicate';
+  String get exportAllNotes => isZh ? '导出全部笔记' : 'Export All Notes';
+  String get exportAllNotesSubtitle =>
+      isZh ? '将所有笔记导出为 Markdown 文件' : 'Export all notes as Markdown files';
+  String exportedAllNotes(int count) =>
+      isZh ? '已导出 $count 篇笔记' : 'Exported $count note(s)';
+
+  // Stats
+  String get stats => isZh ? '统计' : 'Stats';
+  String get statsTitle => isZh ? '数据统计' : 'Statistics';
+  String get statsOverview => isZh ? '总览' : 'Overview';
+  String get totalNotes => isZh ? '全部笔记' : 'Total Notes';
+  String get activeNotes => isZh ? '活跃笔记' : 'Active Notes';
+  String get archivedStat => isZh ? '已归档' : 'Archived';
+  String get trashedStat => isZh ? '回收站' : 'Trashed';
+  String get pinnedStat => isZh ? '已置顶' : 'Pinned';
+  String get contentVolume => isZh ? '内容量' : 'Content Volume';
+  String get totalWords => isZh ? '总字数' : 'Total Words';
+  String get totalChars => isZh ? '总字符' : 'Total Chars';
+  String get typeDistribution => isZh ? '笔记类型分布' : 'Note Types';
+  String get reminderStat => isZh ? '待提醒' : 'Pending Reminders';
+  String get tagDistribution => isZh ? '标签分布' : 'Tag Distribution';
+  String get noTagsForStats => isZh ? '暂无标签' : 'No tags yet';
+  String get creationTrend => isZh ? '最近 7 天创建趋势' : 'Created (Last 7 Days)';
+  String get notesCount(int count) => isZh ? '$count 篇' : '$count note(s)';
+  String get todayLabel => isZh ? '今天' : 'Today';
+  String get noData => isZh ? '暂无数据' : 'No data';
+  String get loadFailed => isZh ? '加载失败' : 'Failed to load';
 
   String justNow() => isZh ? '刚刚' : 'just now';
 

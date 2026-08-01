@@ -121,6 +121,16 @@ class NoteCard extends StatelessWidget {
         children: [
           SlidableAction(
             onPressed: (_) {
+              context.read<NoteProvider>().duplicateNote(note.id);
+            },
+            backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+            foregroundColor:
+                Theme.of(context).colorScheme.onTertiaryContainer,
+            icon: Icons.copy_outlined,
+            label: l10n.duplicate,
+          ),
+          SlidableAction(
+            onPressed: (_) {
               context.read<NoteProvider>().togglePin(note.id, note.isPinned);
             },
             backgroundColor: Theme.of(context).colorScheme.primaryContainer,

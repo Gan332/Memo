@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -511,6 +512,49 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
         TextSelection.collapsed(offset: cursorPos + markdown.length);
   }
 
+  void _insertCodeBlock() {
+    final selection = _contentController.selection;
+    if (selection.isCollapsed) {
+      final text = _contentController.text;
+      final cursorPos = selection.start;
+      const block = '\n```\ncode\n```\n';
+      final newText =
+          '${text.substring(0, cursorPos)}$block${text.substring(cursorPos)}';
+      _contentController.text = newText;
+      _contentController.selection =
+          TextSelection(baseOffset: cursorPos + 5, extentOffset: cursorPos + 9);
+    } else {
+      _insertFormatting('```\n', '\n```');
+    }
+    _contentFocusNode.requestFocus();
+  }
+
+  void _insertTable() {
+    final selection = _contentController.selection;
+    final text = _contentController.text;
+    final cursorPos = selection.start;
+    const table = '\n| 列1 | 列2 |\n| --- | --- |\n| 内容 | 内容 |\n';
+    final newText =
+        '${text.substring(0, cursorPos)}$table${text.substring(cursorPos)}';
+    _contentController.text = newText;
+    _contentController.selection =
+        TextSelection(baseOffset: cursorPos + 3, extentOffset: cursorPos + 5);
+    _contentFocusNode.requestFocus();
+  }
+
+  void _insertDivider() {
+    final selection = _contentController.selection;
+    final text = _contentController.text;
+    final cursorPos = selection.start;
+    const divider = '\n---\n';
+    final newText =
+        '${text.substring(0, cursorPos)}$divider${text.substring(cursorPos)}';
+    _contentController.text = newText;
+    _contentController.selection =
+        TextSelection.collapsed(offset: cursorPos + divider.length);
+    _contentFocusNode.requestFocus();
+  }
+
   Widget _buildFormattingToolbar() {
     final theme = Theme.of(context);
     final iconColor = theme.colorScheme.onSurfaceVariant;
@@ -539,6 +583,10 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
           _tbDivider(),
           _toolbarBtn(Icons.image_outlined, _insertImageMarkdown, iconColor, l10n.insertImage),
           _toolbarBtn(Icons.link, () => _insertFormatting('[', '](url)'), iconColor, l10n.insertLink),
+          _tbDivider(),
+          _toolbarBtn(Icons.data_object, _insertCodeBlock, iconColor, l10n.insertCodeBlock),
+          _toolbarBtn(Icons.table_chart_outlined, _insertTable, iconColor, l10n.insertTable),
+          _toolbarBtn(Icons.horizontal_rule, _insertDivider, iconColor, l10n.insertDivider),
         ],
       ),
     );
@@ -793,7 +841,26 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): _save,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          control: true,
+          shift: true,
+        ): _redo,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
+        const SingleActivator(
+          LogicalKeyboardKey.keyB,
+          control: true,
+        ): () => _insertFormatting('**', '**'),
+        const SingleActivator(
+          LogicalKeyboardKey.keyI,
+          control: true,
+        ): () => _insertFormatting('*', '*'),
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundColor(
         _selectedColor.value,
         Theme.of(context).brightness,
@@ -1038,6 +1105,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> with WidgetsBindi
               ),
             ),
         ],
+      ),
       ),
     );
   }

@@ -58,7 +58,7 @@ lib/
     repositories/                # note_repository, tag_repository, checklist_repository
   domain/entities/               # NoteEntity, TagEntity, ChecklistEntity (plain Dart classes)
   state/providers/               # NoteProvider, TagProvider, ChecklistProvider, ThemeProvider (ChangeNotifier)
-  screens/                       # HomeScreen, AddEditNoteScreen, ArchiveScreen, TagManageScreen, SettingsScreen
+  screens/                       # HomeScreen, AddEditNoteScreen, ArchiveScreen, TagManageScreen, SettingsScreen, StatsScreen, TrashScreen
   widgets/                       # NoteCard, ChecklistEditor, FilterMenu, TagChip
   services/backup_service.dart   # Import/export
   theme/                         # AppTheme (M3), AppColors, AppTypography

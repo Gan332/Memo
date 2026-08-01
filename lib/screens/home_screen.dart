@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
@@ -14,6 +15,7 @@ import 'add_edit_note_screen.dart';
 import 'archive_screen.dart';
 import 'tag_manage_screen.dart';
 import 'settings_screen.dart';
+import 'stats_screen.dart';
 import 'trash_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isSearching = false;
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   int _selectedIndex = 0;
 
   @override
@@ -40,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -107,87 +111,162 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _focusSearch() {
+    setState(() => _isSearching = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocusNode.requestFocus();
+    });
+  }
+
+  void _closeSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
+    setState(() => _isSearching = false);
+  }
+
+  void _handleDestinationSelected(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 1) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ArchiveScreen()),
+      );
+    } else if (index == 2) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const TagManageScreen()),
+      );
+    } else if (index == 3) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const StatsScreen()),
+      );
+    } else if (index == 4) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const TrashScreen()),
+      );
+    } else if (index == 5) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 840;
 
-    return Consumer<NoteProvider>(
-      builder: (context, provider, _) {
-        return Scaffold(
-          body: isWide ? _buildWideLayout() : _buildNarrowLayout(),
-          bottomNavigationBar: isWide
-              ? null
-              : NavigationBar(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: (index) {
-                    setState(() => _selectedIndex = index);
-                    if (index == 1) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const ArchiveScreen()),
-                      );
-                    } else if (index == 2) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const TagManageScreen()),
-                      );
-                    } else if (index == 3) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TrashScreen()),
-                      );
-                    } else if (index == 4) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const SettingsScreen()),
-                      );
-                    }
-                  },
-                  destinations: [
-                    NavigationDestination(
-                      icon: const Icon(Icons.note_outlined),
-                      selectedIcon: const Icon(Icons.note),
-                      label: AppLocalizations.of(context).textNote,
-                    ),
-                    NavigationDestination(
-                      icon: Badge(
-                        isLabelVisible: provider.archivedNotes.isNotEmpty,
-                        label: Text('${provider.archivedNotes.length}'),
-                        child: const Icon(Icons.archive_outlined),
-                      ),
-                      selectedIcon: Badge(
-                        isLabelVisible: provider.archivedNotes.isNotEmpty,
-                        label: Text('${provider.archivedNotes.length}'),
-                        child: const Icon(Icons.archive),
-                      ),
-                      label: AppLocalizations.of(context).archive,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.label_outlined),
-                      selectedIcon: const Icon(Icons.label),
-                      label: AppLocalizations.of(context).tagManage,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.delete_outline),
-                      selectedIcon: const Icon(Icons.delete),
-                      label: AppLocalizations.of(context).trash,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.settings_outlined),
-                      selectedIcon: const Icon(Icons.settings),
-                      label: AppLocalizations.of(context).settings,
-                    ),
-                  ],
-                ),
-          floatingActionButton: provider.isMultiSelectMode
-              ? null
-              : FloatingActionButton(
-                  onPressed: _showTemplatePicker,
-                  tooltip: AppLocalizations.of(context).newNote,
-                  child: const Icon(Icons.add),
-                ),
-        );
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(
+          LogicalKeyboardKey.keyN,
+          control: true,
+        ): _showTemplatePicker,
+        const SingleActivator(
+          LogicalKeyboardKey.keyF,
+          control: true,
+        ): () {
+          if (isWide) {
+            _searchFocusNode.requestFocus();
+          } else if (!_isSearching) {
+            _focusSearch();
+          }
+        },
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (_isSearching) {
+            _closeSearch();
+          } else {
+            context.read<NoteProvider>().exitMultiSelectMode();
+          }
+        },
+        const SingleActivator(
+          LogicalKeyboardKey.digit1,
+          control: true,
+        ): () => _handleDestinationSelected(0),
+        const SingleActivator(
+          LogicalKeyboardKey.digit2,
+          control: true,
+        ): () => _handleDestinationSelected(1),
+        const SingleActivator(
+          LogicalKeyboardKey.digit3,
+          control: true,
+        ): () => _handleDestinationSelected(2),
+        const SingleActivator(
+          LogicalKeyboardKey.digit4,
+          control: true,
+        ): () => _handleDestinationSelected(3),
+        const SingleActivator(
+          LogicalKeyboardKey.digit5,
+          control: true,
+        ): () => _handleDestinationSelected(4),
+        const SingleActivator(
+          LogicalKeyboardKey.digit6,
+          control: true,
+        ): () => _handleDestinationSelected(5),
       },
+      child: Focus(
+        autofocus: true,
+        child: Consumer<NoteProvider>(
+          builder: (context, provider, _) {
+            return Scaffold(
+              body: isWide ? _buildWideLayout() : _buildNarrowLayout(),
+              bottomNavigationBar: isWide
+                  ? null
+                  : NavigationBar(
+                      selectedIndex: _selectedIndex,
+                      onDestinationSelected: _handleDestinationSelected,
+                      destinations: [
+                        NavigationDestination(
+                          icon: const Icon(Icons.note_outlined),
+                          selectedIcon: const Icon(Icons.note),
+                          label: AppLocalizations.of(context).textNote,
+                        ),
+                        NavigationDestination(
+                          icon: Badge(
+                            isLabelVisible:
+                                provider.archivedNotes.isNotEmpty,
+                            label: Text('${provider.archivedNotes.length}'),
+                            child: const Icon(Icons.archive_outlined),
+                          ),
+                          selectedIcon: Badge(
+                            isLabelVisible:
+                                provider.archivedNotes.isNotEmpty,
+                            label: Text('${provider.archivedNotes.length}'),
+                            child: const Icon(Icons.archive),
+                          ),
+                          label: AppLocalizations.of(context).archive,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.label_outlined),
+                          selectedIcon: const Icon(Icons.label),
+                          label: AppLocalizations.of(context).tagManage,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.insert_chart_outlined),
+                          selectedIcon: const Icon(Icons.insert_chart),
+                          label: AppLocalizations.of(context).stats,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.delete_outline),
+                          selectedIcon: const Icon(Icons.delete),
+                          label: AppLocalizations.of(context).trash,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.settings_outlined),
+                          selectedIcon: const Icon(Icons.settings),
+                          label: AppLocalizations.of(context).settings,
+                        ),
+                      ],
+                    ),
+              floatingActionButton: provider.isMultiSelectMode
+                  ? null
+                  : FloatingActionButton(
+                      onPressed: _showTemplatePicker,
+                      tooltip: AppLocalizations.of(context).newNote,
+                      child: const Icon(Icons.add),
+                    ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -251,6 +330,11 @@ class _HomeScreenState extends State<HomeScreen> {
               label: Text(AppLocalizations.of(context).tagManage),
             ),
             NavigationRailDestination(
+              icon: const Icon(Icons.insert_chart_outlined),
+              selectedIcon: const Icon(Icons.insert_chart),
+              label: Text(AppLocalizations.of(context).stats),
+            ),
+            NavigationRailDestination(
               icon: const Icon(Icons.delete_outline),
               selectedIcon: const Icon(Icons.delete),
               label: Text(AppLocalizations.of(context).trash),
@@ -271,8 +355,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   : _selectedIndex == 2
                       ? const TagManageScreen()
                       : _selectedIndex == 3
-                          ? const TrashScreen()
-                          : const SettingsScreen(),
+                          ? const StatsScreen()
+                          : _selectedIndex == 4
+                              ? const TrashScreen()
+                              : const SettingsScreen(),
         ),
       ],
     );
@@ -361,6 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(16),
       child: TextField(
         controller: _searchController,
+        focusNode: _searchFocusNode,
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context).searchHint,
           prefixIcon: const Icon(Icons.search),
@@ -411,6 +498,11 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: l10n.deselectAll,
             onPressed: provider.deselectAllNotes,
           ),
+          IconButton(
+            icon: const Icon(Icons.copy_outlined),
+            tooltip: l10n.duplicate,
+            onPressed: provider.duplicateSelectedNotes,
+          ),
         ],
       ),
     );
@@ -453,6 +545,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.push_pin_outlined),
                 tooltip: l10n.pin,
                 onPressed: () => provider.pinSelectedNotes(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy_outlined),
+                tooltip: l10n.duplicate,
+                onPressed: () => provider.duplicateSelectedNotes(),
               ),
               IconButton(
                 icon: const Icon(Icons.label_outlined),

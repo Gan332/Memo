@@ -5,7 +5,9 @@ import 'package:file_picker/file_picker.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/providers/theme_provider.dart';
+import '../state/providers/note_provider.dart';
 import '../services/backup_service.dart';
+import '../services/export_service.dart';
 import '../services/platform_file.dart';
 
 const String _appVersion = '1.0.0+1';
@@ -41,6 +43,12 @@ class SettingsScreen extends StatelessWidget {
                 title: Text(l10n.importBackup),
                 subtitle: Text(l10n.importBackupSubtitle),
                 onTap: () => _importBackup(context, l10n),
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_open),
+                title: Text(l10n.exportAllNotes),
+                subtitle: Text(l10n.exportAllNotesSubtitle),
+                onTap: () => _exportAllNotes(context, l10n),
               ),
               const Divider(height: 32),
               _buildSectionHeader(context, l10n.about),
@@ -196,6 +204,35 @@ class SettingsScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.importFailed(e.toString()))),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportAllNotes(
+      BuildContext context, AppLocalizations l10n) async {
+    try {
+      final service = ExportService();
+      final directory = await service.pickDirectory();
+      if (directory == null) return;
+
+      final noteProvider = context.read<NoteProvider>();
+      final notes = await noteProvider.getAllNotes();
+      final count = await service.exportAllToDirectory(
+        directory,
+        notes,
+        loadChecklistItems: noteProvider.getChecklistItems,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.exportedAllNotes(count))),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.exportFailed(e.toString()))),
         );
       }
     }

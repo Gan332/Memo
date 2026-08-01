@@ -302,6 +302,24 @@ class NoteProvider extends ChangeNotifier {
     return _noteRepository.getNoteCount(isArchived: isArchived);
   }
 
+  Future<NoteStats> getStats() {
+    return _noteRepository.getStats();
+  }
+
+  Future<List<NoteWithTags>> getAllNotes() {
+    return _noteRepository.getNotes();
+  }
+
+  Future<List<ChecklistItem>> getChecklistItems(int noteId) {
+    return _noteRepository.getChecklistItems(noteId);
+  }
+
+  Future<int> duplicateNote(int id) async {
+    final newId = await _noteRepository.duplicateNote(id);
+    await loadNotes();
+    return newId;
+  }
+
   // Multi-select operations
   void enterMultiSelectMode() {
     _isMultiSelectMode = true;
@@ -369,6 +387,15 @@ class NoteProvider extends ChangeNotifier {
     for (final id in _selectedNoteIds) {
       final note = _notes.firstWhere((n) => n.id == id);
       await _noteRepository.togglePin(id, note.isPinned);
+    }
+    _isMultiSelectMode = false;
+    _selectedNoteIds.clear();
+    await loadNotes();
+  }
+
+  Future<void> duplicateSelectedNotes() async {
+    for (final id in List<int>.of(_selectedNoteIds)) {
+      await _noteRepository.duplicateNote(id);
     }
     _isMultiSelectMode = false;
     _selectedNoteIds.clear();

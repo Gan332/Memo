@@ -115,6 +115,60 @@ class NoteRepository {
     );
   }
 
+  /// Creates a copy of the note with fresh timestamps, keeping its tags and
+  /// checklist items. Reminders and attachments are not copied.
+  Future<int> duplicateNote(int id) async {
+    final note = await (_db.select(_db.notes)..where((n) => n.id.equals(id)))
+        .getSingleOrNull();
+    if (note == null) {
+      throw StateError('Note not found: $id');
+    }
+    final now = DateTime.now().toIso8601String();
+    final newId = await _db.into(_db.notes).insert(NotesCompanion(
+      title: Value(note.title),
+      content: Value(note.content),
+      noteType: Value(note.noteType),
+      color: Value(note.color),
+      isPinned: Value(note.isPinned),
+      isArchived: Value(note.isArchived),
+      isDeleted: const Value(false),
+      deletedAt: const Value(null),
+      reminderTimestamp: const Value(null),
+      reminderFired: const Value(null),
+      createdAt: Value(now),
+      updatedAt: Value(now),
+    ));
+
+    final noteTags = await (_db.select(_db.noteTags)
+          ..where((nt) => nt.noteId.equals(id)))
+        .get();
+    for (final nt in noteTags) {
+      await _db.into(_db.noteTags).insert(
+            NoteTagsCompanion.insert(noteId: newId, tagId: nt.tagId),
+          );
+    }
+
+    final items = await getChecklistItems(id);
+    for (final item in items) {
+      await _db.into(_db.checklistItems).insert(
+            ChecklistItemsCompanion.insert(
+              noteId: newId,
+              itemText: item.itemText,
+              isCompleted: Value(item.isCompleted),
+              sortOrder: Value(item.sortOrder),
+            ),
+          );
+    }
+    return newId;
+  }
+
+  Future<List<ChecklistItem>> getChecklistItems(int noteId) {
+    return (_db.select(_db.checklistItems)
+          ..where((ci) => ci.noteId.equals(noteId))
+          ..orderBy([(ci) => OrderingTerm.asc(ci.sortOrder)]))
+        .get();
+  }
+
   Future<Set<int>> _searchFtsIds(String query) async {
     String sanitize(String s) {
       return s.replaceAllMapped(
@@ -216,6 +270,95 @@ class NoteRepository {
     }
     return countQuery.get().then((list) => list.length);
   }
+
+  Future<NoteStats> getStats() async {
+    final allNotes = await _db.select(_db.notes).get();
+    final tagCounts = await (_db.select(_db.noteTags)).get();
+
+    var totalChars = 0;
+    var totalWords = 0;
+    var pinnedCount = 0;
+    var reminderCount = 0;
+    var checklistCount = 0;
+    final createdByDay = List<int>.filled(7, 0);
+    final now = DateTime.now();
+
+    final usage = <int, int>{};
+    for (final nt in tagCounts) {
+      usage[nt.tagId] = (usage[nt.tagId] ?? 0) + 1;
+    }
+
+    for (final note in allNotes) {
+      totalChars += note.content.length;
+      totalWords += note.content.trim().isEmpty
+          ? 0
+          : note.content.trim().split(RegExp(r'\s+')).length;
+      if (note.isPinned) pinnedCount++;
+      if (note.reminderTimestamp != null && note.reminderFired != true) {
+        reminderCount++;
+      }
+      if (note.noteType == 'checklist') checklistCount++;
+      final created = DateTime.tryParse(note.createdAt);
+      if (created != null) {
+        final diff = now.difference(created);
+        if (diff.inDays >= 0 && diff.inDays < 7) {
+          createdByDay[6 - diff.inDays]++;
+        }
+      }
+    }
+
+    final activeCount =
+        allNotes.where((n) => !n.isDeleted && !n.isArchived).length;
+    final archivedCount =
+        allNotes.where((n) => !n.isDeleted && n.isArchived).length;
+    final trashedCount = allNotes.where((n) => n.isDeleted).length;
+
+    return NoteStats(
+      totalCount: allNotes.length,
+      activeCount: activeCount,
+      archivedCount: archivedCount,
+      trashedCount: trashedCount,
+      pinnedCount: pinnedCount,
+      checklistCount: checklistCount,
+      reminderCount: reminderCount,
+      totalChars: totalChars,
+      totalWords: totalWords,
+      tagUsage: usage,
+      createdByDay: createdByDay,
+    );
+  }
+}
+
+class NoteStats {
+  final int totalCount;
+  final int activeCount;
+  final int archivedCount;
+  final int trashedCount;
+  final int pinnedCount;
+  final int checklistCount;
+  final int reminderCount;
+  final int totalChars;
+  final int totalWords;
+  final Map<int, int> tagUsage;
+  final List<int> createdByDay;
+
+  const NoteStats({
+    required this.totalCount,
+    required this.activeCount,
+    required this.archivedCount,
+    required this.trashedCount,
+    required this.pinnedCount,
+    required this.checklistCount,
+    required this.reminderCount,
+    required this.totalChars,
+    required this.totalWords,
+    required this.tagUsage,
+    required this.createdByDay,
+  });
+
+  int get textCount => totalCount - checklistCount;
+
+  int get tagCount => tagUsage.length;
 }
 
 class NoteWithTags {
